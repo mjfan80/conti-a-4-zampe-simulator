@@ -19,3 +19,13 @@ fun applicaRendita(giocatore: Giocatore) {
     val rendita = calcolaRendita(giocatore)
     giocatore.doin += rendita
 }
+
+fun calcolaRenditaNetta(giocatore: Giocatore): Int {
+    val renditaBase = calcolaRendita(giocatore)
+    return applicaRiduzioneDaDebito(renditaBase, giocatore)
+}
+
+fun applicaRenditaNetta(giocatore: Giocatore) {
+    val renditaNetta = calcolaRenditaNetta(giocatore)
+    giocatore.doin += renditaNetta
+}
