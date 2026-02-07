@@ -9,6 +9,8 @@ plugins {
     // Apply the org.jetbrains.kotlin.jvm Plugin to add support for Kotlin.
     alias(libs.plugins.kotlin.jvm)
 
+    idea
+
     // Apply the application plugin to add support for building a CLI application in Java.
     application
 
@@ -41,6 +43,13 @@ java {
 application {
     // Define the main class for the application.
     mainClass = "it.contia4zampe.simulator.AppKt"
+}
+
+idea {
+    module {
+        isDownloadSources = true
+        isDownloadJavadoc = true
+    }
 }
 
 tasks.named<Test>("test") {
