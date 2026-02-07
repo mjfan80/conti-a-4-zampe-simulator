@@ -1,6 +1,8 @@
 package it.contia4zampe.simulator.engine
 
 import it.contia4zampe.simulator.rules.*
+import it.contia4zampe.simulator.player.AzioneGiocatore
+
 
 class GiornataEngine {
 
@@ -34,18 +36,21 @@ class GiornataEngine {
                     return@forEach
                 }
 
-                // TODO:
-                // qui in futuro:
-                // - profilo giocatore decide azione
-                // - può diventare CLOSED
-                // - può passare
+                val azione = statoGiocatore.profilo.decidiAzione(stato, statoGiocatore)
 
-                // PER ORA: simulazione forzata → passa
-                passaGiocatore(stato, statoGiocatore)
+                when (azione) {
+                    is AzioneGiocatore.Passa -> {
+                        passaGiocatore(stato, statoGiocatore)
+                        if (stato.inChiusura) {
+                            statoGiocatore.haFattoUltimoTurno = true
+                        }
+                    }
 
-                if (stato.inChiusura) {
-                    statoGiocatore.haFattoUltimoTurno = true
+                    is AzioneGiocatore.AzioneFittizia -> {
+                        // per ora non fa nulla
+                    }
                 }
+
             }
 
             if (stato.inChiusura &&
