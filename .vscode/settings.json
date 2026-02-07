@@ -1,0 +1,6 @@
+{
+    "kotlin.externalSources.autoConvertToKotlin": false,
+    "kotlin.scripts.enabled": true,
+    "kotlin.scripts.buildScriptsEnabled": false,
+    "kotlin.java.home": "/usr/local/sdkman/candidates/java/current"
+}

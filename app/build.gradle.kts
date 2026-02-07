@@ -11,6 +11,8 @@ plugins {
 
     // Apply the application plugin to add support for building a CLI application in Java.
     application
+
+     id("eclipse")
 }
 
 repositories {
@@ -20,7 +22,8 @@ repositories {
 
 dependencies {
     // Use JUnit Jupiter for testing.
-    testImplementation(libs.junit.jupiter)
+    //testImplementation(libs.junit.jupiter)
+    testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
