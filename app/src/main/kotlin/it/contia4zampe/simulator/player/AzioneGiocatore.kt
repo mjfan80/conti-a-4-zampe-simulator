@@ -2,8 +2,13 @@ package it.contia4zampe.simulator.player
 
 sealed class AzioneGiocatore {
 
-    object Passa : AzioneGiocatore()
+    abstract val chiudeTurno: Boolean
 
-    // placeholder per il futuro
-    object AzioneFittizia : AzioneGiocatore()
+    object Passa : AzioneGiocatore() {
+        override val chiudeTurno = true
+    }
+
+    object AzioneFittizia : AzioneGiocatore() {
+        override val chiudeTurno = false
+    }
 }

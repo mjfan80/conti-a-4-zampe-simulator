@@ -39,17 +39,22 @@ class GiornataEngine {
                 val azione = statoGiocatore.profilo.decidiAzione(stato, statoGiocatore)
 
                 when (azione) {
-                    is AzioneGiocatore.Passa -> {
-                        passaGiocatore(stato, statoGiocatore)
-                        if (stato.inChiusura) {
-                            statoGiocatore.haFattoUltimoTurno = true
-                        }
-                    }
 
+                    is AzioneGiocatore.Passa,
                     is AzioneGiocatore.AzioneFittizia -> {
-                        // per ora non fa nulla
+
+                        if (azione.chiudeTurno) {
+                            passaGiocatore(stato, statoGiocatore)
+
+                            if (stato.inChiusura) {
+                                statoGiocatore.haFattoUltimoTurno = true
+                            }
+                        }
+
+                        // se NON chiude il turno, il giocatore resta OPEN
                     }
                 }
+
 
             }
 
