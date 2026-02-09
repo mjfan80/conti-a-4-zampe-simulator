@@ -1,17 +1,26 @@
 #!/bin/bash
 
-BASE_URL="https://github.com/mjfan80/conti-a-4-zampe-simulator/tree/main/app/src"
+REPO_URL="https://github.com/mjfan80/conti-a-4-zampe-simulator"
+BRANCH="main"
+SRC_ROOT="app/src/main/kotlin"
 
-echo "# Indice codice – Conti a 4 Zampe" > INDEX.md
-echo "" >> INDEX.md
+OUTPUT="INDEX.md"
 
-find app/src/main/kotlin -name "*.kt" | sort | while read file; do
+echo "# Indice codice – Conti a 4 Zampe" > "$OUTPUT"
+echo "" >> "$OUTPUT"
+
+find "$SRC_ROOT" -name "*.kt" | sort | while read -r file; do
+  # path relativo al repo
+  REL_PATH="${file#./}"
+
+  # URL GitHub corretto
+  URL="$REPO_URL/blob/$BRANCH/$REL_PATH"
+
   CLASS=$(basename "$file" .kt)
-  DIR=$(dirname "$file")
-  URL="$BASE_URL/$file"
+  DIR=$(dirname "$REL_PATH")
 
-  echo "## $DIR" >> INDEX.md
-  echo "- $CLASS" >> INDEX.md
-  echo "  $URL" >> INDEX.md
-  echo "" >> INDEX.md
+  echo "## $DIR" >> "$OUTPUT"
+  echo "- $CLASS" >> "$OUTPUT"
+  echo "  $URL" >> "$OUTPUT"
+  echo "" >> "$OUTPUT"
 done
