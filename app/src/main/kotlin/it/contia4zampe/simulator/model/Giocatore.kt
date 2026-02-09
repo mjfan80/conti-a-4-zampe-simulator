@@ -4,5 +4,7 @@ data class Giocatore(
     val id: Int,
     var doin: Int,
     var debiti: Int,
-    val plancia: PlanciaGiocatore
+    val plancia: PlanciaGiocatore,
+    val mano: MutableList<CartaRazza> = mutableListOf()
 )
+

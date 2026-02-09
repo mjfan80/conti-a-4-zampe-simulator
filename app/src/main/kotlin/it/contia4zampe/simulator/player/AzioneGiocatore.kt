@@ -1,4 +1,5 @@
 package it.contia4zampe.simulator.player
+import it.contia4zampe.simulator.model.CartaRazza
 
 sealed class AzioneGiocatore {
 
@@ -11,4 +12,11 @@ sealed class AzioneGiocatore {
     object AzioneFittizia : AzioneGiocatore() {
         override val chiudeTurno = false
     }
+
+    data class GiocaCartaRazza(
+            val carta: CartaRazza
+        ) : AzioneGiocatore() {
+            override val chiudeTurno = false
+        }
+
 }

@@ -9,5 +9,7 @@ enum class StatoCane {
 }
 
 data class Cane(
-    val stato: StatoCane
+    val id: Int,
+    var stato: StatoCane,
+    var statoPrecedente: StatoCane? = null
 )
