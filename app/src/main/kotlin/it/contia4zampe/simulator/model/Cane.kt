@@ -12,15 +12,17 @@ data class Cane(
     val id: Int,
     var stato: StatoCane,
     var statoPrecedente: StatoCane? = null
+    val giornataNascita: Int? = null // Null per i cani iniziali
 ) {
     companion object {
         private var nextId: Int = 1
         
         // Factory method per creare cani con ID automatico
-        fun crea(stato: StatoCane): Cane {
+        fun crea(stato: StatoCane, giornataCorrente: Int? = null): Cane {
             return Cane(
                 id = nextId++,
-                stato = stato
+                stato = stato,
+                giornataNascita = giornataCorrente
             )
         }
 

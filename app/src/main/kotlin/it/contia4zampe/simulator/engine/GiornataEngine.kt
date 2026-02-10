@@ -9,7 +9,6 @@ class GiornataEngine {
 
     private val dado: Dado = DadoStandard()
 
-
     fun eseguiGiornata(stato: StatoGiornata) {
         inizioGiornata(stato)
         turniGiocatori(stato)
@@ -19,11 +18,27 @@ class GiornataEngine {
     private fun inizioGiornata(stato: StatoGiornata) {
         stato.fase = FaseGiornata.INIZIO
 
+        // 1. Produzione della rendita
+        // 2. Popolamento delle Carte Razza vuote
         stato.giocatori.forEach { statoGiocatore ->
-            val giocatore = statoGiocatore.giocatore
-            applicaRenditaNetta(giocatore)
-            applicaPopolamentoCarteNuove(giocatore)
-            risolviAccoppiamenti(giocatore)
+            applicaRenditaNetta(statoGiocatore.giocatore)
+            applicaPopolamentoCarteNuove(statoGiocatore.giocatore)
+        }
+
+        // 3. Gestione dei cuccioli maturi
+        val cuccioliMaturi = stato.giocatori.flatMap { 
+            trovaCuccioliMaturi(it.giocatore, stato.numero) 
+        }
+
+        if (cuccioliMaturi.isNotEmpty()) {
+            // TODO: Qui dobbiamo interrompere il flusso e chiedere all'utente.
+            // Per ora stampiamo solo per confermare che li abbiamo trovati
+            println("DEBUG: Trovati ${cuccioliMaturi.size} cuccioli maturi da gestire.")
+        }
+
+        // 4. Risoluzione degli accoppiamenti (Nascono i NUOVI, dopo aver gestito i vecchi)
+        stato.giocatori.forEach { statoGiocatore ->
+            risolviAccoppiamenti(statoGiocatore.giocatore, stato.numero)
         }
     }
 
@@ -104,7 +119,7 @@ class GiornataEngine {
         }
     }
 
-    private fun risolviAccoppiamenti(giocatore: Giocatore) {
+    private fun risolviAccoppiamenti(giocatore: Giocatore, giornataCorrente: Int) { // Parametro aggiunto
         
         giocatore.plancia.righe.flatten().forEach { carta ->
 
@@ -121,7 +136,10 @@ class GiornataEngine {
                     else -> 0
                 }
 
-                repeat(cuccioliDaCreare) {carta.cani.add(Cane.crea(StatoCane.CUCCIOLO))}
+                repeat(cuccioliDaCreare) {
+                    // Qui usiamo la data corrente
+                    carta.cani.add(Cane.crea(StatoCane.CUCCIOLO, giornataCorrente))
+                }
 
                 caniInAccoppiamento.forEach { cane ->
                     cane.stato = cane.statoPrecedente
