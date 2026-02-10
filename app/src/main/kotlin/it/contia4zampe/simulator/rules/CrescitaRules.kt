@@ -4,7 +4,7 @@ import it.contia4zampe.simulator.model.Cane
 import it.contia4zampe.simulator.model.Giocatore
 import it.contia4zampe.simulator.model.StatoCane
 
-const val GIORNI_PER_MATURAZIONE = 2
+const val GIORNI_PER_MATURAZIONE = 1 
 
 fun trovaCuccioliMaturi(giocatore: Giocatore, giornataCorrente: Int): List<Cane> {
     return giocatore.plancia.righe

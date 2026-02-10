@@ -25,15 +25,9 @@ class GiornataEngine {
             applicaPopolamentoCarteNuove(statoGiocatore.giocatore)
         }
 
-        // 3. Gestione dei cuccioli maturi
-        val cuccioliMaturi = stato.giocatori.flatMap { 
-            trovaCuccioliMaturi(it.giocatore, stato.numero) 
-        }
-
-        if (cuccioliMaturi.isNotEmpty()) {
-            // TODO: Qui dobbiamo interrompere il flusso e chiedere all'utente.
-            // Per ora stampiamo solo per confermare che li abbiamo trovati
-            println("DEBUG: Trovati ${cuccioliMaturi.size} cuccioli maturi da gestire.")
+        // 3. Gestione dei cuccioli maturi (SPOSTATO NELLE RULES)
+        stato.giocatori.forEach { g -> 
+            applicaMaturazioneCuccioli(g, stato.numero) 
         }
 
         // 4. Risoluzione degli accoppiamenti (Nascono i NUOVI, dopo aver gestito i vecchi)

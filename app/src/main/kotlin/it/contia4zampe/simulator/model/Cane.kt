@@ -8,10 +8,16 @@ enum class StatoCane {
     IN_ACCOPPIAMENTO
 }
 
+// NUOVO: Enum per la decisione del giocatore (spostato qui come richiesto)
+enum class SceltaCucciolo {
+    VENDI,
+    TRASFORMA_IN_ADULTO
+}
+
 data class Cane(
     val id: Int,
     var stato: StatoCane,
-    var statoPrecedente: StatoCane? = null
+    var statoPrecedente: StatoCane? = null,
     val giornataNascita: Int? = null // Null per i cani iniziali
 ) {
     companion object {
