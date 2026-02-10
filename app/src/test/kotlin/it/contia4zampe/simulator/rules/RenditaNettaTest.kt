@@ -16,8 +16,8 @@ class RenditaNettaTest {
             puntiUpgrade = 2,
             taglia = Taglia.MEDIA,
             cani = mutableListOf(
-                Cane(StatoCane.ADULTO),              // +1
-                Cane(StatoCane.ADULTO_ADDESTRATO)   // +2
+                Cane.crea(StatoCane.ADULTO),              // +1
+                Cane.crea(StatoCane.ADULTO_ADDESTRATO)   // +2
             )
         )
 

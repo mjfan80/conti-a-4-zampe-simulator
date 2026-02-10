@@ -17,9 +17,9 @@ class UpkeepRulesTest {
             puntiUpgrade = 2,
             taglia = Taglia.MEDIA,
             cani = mutableListOf(
-                Cane(StatoCane.ADULTO),
-                Cane(StatoCane.CUCCIOLO),
-                Cane(StatoCane.IN_ADDESTRAMENTO)
+                Cane.crea(StatoCane.ADULTO),
+                Cane.crea(StatoCane.CUCCIOLO),
+                Cane.crea(StatoCane.IN_ADDESTRAMENTO)
             )
         )
 
@@ -48,10 +48,10 @@ class UpkeepRulesTest {
             puntiUpgrade = 2,
             taglia = Taglia.MEDIA,
             cani = mutableListOf(
-                Cane(StatoCane.ADULTO),
-                Cane(StatoCane.ADULTO),
-                Cane(StatoCane.CUCCIOLO),
-                Cane(StatoCane.IN_ACCOPPIAMENTO)
+                Cane.crea(StatoCane.ADULTO),
+                Cane.crea(StatoCane.ADULTO),
+                Cane.crea(StatoCane.CUCCIOLO),
+                Cane.crea(StatoCane.IN_ACCOPPIAMENTO)
             )
         )
 

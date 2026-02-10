@@ -16,11 +16,11 @@ class RenditaRulesTest {
             puntiUpgrade = 2,
             taglia = Taglia.MEDIA,
             cani = mutableListOf(
-                Cane(StatoCane.ADULTO),              // +1
-                Cane(StatoCane.ADULTO_ADDESTRATO),   // +2
-                Cane(StatoCane.CUCCIOLO),            // 0
-                Cane(StatoCane.IN_ACCOPPIAMENTO),    // 0
-                Cane(StatoCane.IN_ADDESTRAMENTO)     // 0
+                Cane.crea(StatoCane.ADULTO),              // +1
+                Cane.crea(StatoCane.ADULTO_ADDESTRATO),   // +2
+                Cane.crea(StatoCane.CUCCIOLO),            // 0
+                Cane.crea(StatoCane.IN_ACCOPPIAMENTO),    // 0
+                Cane.crea(StatoCane.IN_ADDESTRAMENTO)     // 0
             )
         )
 
@@ -48,8 +48,8 @@ class RenditaRulesTest {
             puntiUpgrade = 2,
             taglia = Taglia.MEDIA,
             cani = mutableListOf(
-                Cane(StatoCane.ADULTO),
-                Cane(StatoCane.ADULTO)
+                Cane.crea(StatoCane.ADULTO),
+                Cane.crea(StatoCane.ADULTO)
             )
         )
 

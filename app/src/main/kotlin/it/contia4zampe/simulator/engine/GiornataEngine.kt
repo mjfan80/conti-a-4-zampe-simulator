@@ -7,10 +7,6 @@ import it.contia4zampe.simulator.model.*
 
 class GiornataEngine {
 
-    private var nextCaneId: Int = 1
-
-    private fun generaIdCane(): Int = nextCaneId++
-
     private val dado: Dado = DadoStandard()
 
 
@@ -109,8 +105,8 @@ class GiornataEngine {
     }
 
     private fun risolviAccoppiamenti(giocatore: Giocatore) {
-
-        giocatore.carteRazza.forEach { carta ->
+        
+        giocatore.plancia.righe.flatten().forEach { carta ->
 
             val caniInAccoppiamento = carta.cani.filter { it.stato == StatoCane.IN_ACCOPPIAMENTO }
 
@@ -125,14 +121,7 @@ class GiornataEngine {
                     else -> 0
                 }
 
-                repeat(cuccioliDaCreare) {
-                    carta.cani.add(
-                        Cane(
-                            id = generaIdCane(),
-                            stato = StatoCane.CUCCIOLO
-                        )
-                    )
-                }
+                repeat(cuccioliDaCreare) {carta.cani.add(Cane.crea(StatoCane.CUCCIOLO))}
 
                 caniInAccoppiamento.forEach { cane ->
                     cane.stato = cane.statoPrecedente

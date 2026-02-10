@@ -17,8 +17,8 @@ class CollassoRulesTest {
             puntiUpgrade = 2,
             taglia = Taglia.MEDIA,
             cani = mutableListOf(
-                Cane(StatoCane.ADULTO),
-                Cane(StatoCane.ADULTO)
+                Cane.crea(StatoCane.ADULTO),
+                Cane.crea(StatoCane.ADULTO)
             ),
             collassata = false
         )
@@ -38,8 +38,7 @@ class CollassoRulesTest {
             puntiUpgrade = 2,
             taglia = Taglia.MEDIA,
             cani = mutableListOf(
-                Cane(StatoCane.ADULTO),
-                Cane(StatoCane.CUCCIOLO)
+                Cane.crea(StatoCane.ADULTO)
             ),
             collassata = false
         )
@@ -59,8 +58,8 @@ class CollassoRulesTest {
             puntiUpgrade = 2,
             taglia = Taglia.MEDIA,
             cani = mutableListOf(
-                Cane(StatoCane.CUCCIOLO),
-                Cane(StatoCane.IN_ACCOPPIAMENTO)
+                Cane.crea(StatoCane.ADULTO),
+                Cane.crea(StatoCane.IN_ACCOPPIAMENTO)
             ),
             collassata = false
         )
