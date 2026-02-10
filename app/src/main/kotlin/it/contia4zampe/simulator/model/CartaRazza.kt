@@ -6,8 +6,6 @@ enum class Taglia {
     GRANDE
 }
 
-package it.contia4zampe.simulator.model
-
 // Definiamo gli effetti che possono attivarsi a inizio giornata
 enum class EffettoInizioGiornata {
     NESSUNO,
