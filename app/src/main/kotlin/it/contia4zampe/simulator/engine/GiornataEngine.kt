@@ -34,6 +34,22 @@ class GiornataEngine {
         stato.giocatori.forEach { statoGiocatore ->
             risolviAccoppiamenti(statoGiocatore.giocatore, stato.numero)
         }
+
+        // 5. RISOLUZIONE ADDESTRAMENTO (NUOVO)
+        stato.giocatori.forEach { g -> 
+            applicaRisoluzioneAddestramento(g.giocatore) 
+        }
+
+        // 6. Effetti "a inizio Giornata"
+        for (sg in stato.giocatori) {
+            applicaEffettiInizioGiornata(sg.giocatore) // Chiamata alla regola esterna
+        }
+
+        // 7. Preparazione dei giocatori (Reset OPEN e rotazione Primo Giocatore)
+        preparaGiocatori(stato)
+
+        // 8. Pesca dal mercato comune
+        eseguiDraftMercato(stato)
     }
 
 
@@ -164,7 +180,61 @@ class GiornataEngine {
         cane2.stato = StatoCane.IN_ACCOPPIAMENTO
     }
 
+    private fun risolviEffettiInizioGiornata(stato: StatoGiornata) {
+        for (statoGiocatore in stato.giocatori) {
+            val giocatore = statoGiocatore.giocatore
+            // Per ora implementiamo solo il bonus base se presente nelle carte
+            for (carta in giocatore.plancia.righe.flatten()) {
+                // Esempio: Se è un Labrador, nel database dice +1 doin
+                //solo un esempio poi sara un qualcosa dentro la carta
+                if (carta.nome == "Labrador") {
+                    giocatore.doin += 1
+                    println("LOG: G${giocatore.id} guadagna +1 doin (Effetto Labrador)")
+                }
+                
+            }
+        }
+    }
 
+    private fun preparaGiocatori(stato: StatoGiornata) {
+        // Tutti tornano OPEN
+        for (sg in stato.giocatori) {
+            sg.statoTurno = StatoTurno.OPEN
+            sg.haFattoUltimoTurno = false
+        }
+        
+        // Il segnalino passa a sinistra (già gestito dal PartitaEngine o qui)
+        // La logica dice: Primo Giocatore Giornata N+1 = (Primo Giocatore Giorno N + 1)
+        // Lo faremo alla fine della giornata o qui. Facciamolo qui per chiarezza.
+        println("LOG: Il Primo Giocatore è il giocatore indice ${stato.indicePrimoGiocatore}")
+    }
+
+    private fun eseguiDraftMercato(stato: StatoGiornata) {
+        val nGiocatori = stato.giocatori.size
+        
+        // Si parte dal primo giocatore e si procede in senso orario
+        for (i in 0 until nGiocatori) {
+            val currentIndex = (stato.indicePrimoGiocatore + i) % nGiocatori
+            val sg = stato.giocatori[currentIndex]
+            
+            if (stato.mercatoComune.isNotEmpty()) {
+                // Il profilo decide quale carta prendere
+                val scelta = sg.profilo.scegliCartaDalMercato(sg, stato.mercatoComune)
+                
+                // La carta passa dal mercato alla mano del giocatore
+                stato.mercatoComune.remove(scelta)
+                sg.giocatore.mano.add(scelta)
+                
+                // Rimpiazzo immediato dal mazzo
+                if (stato.mazzoCarteRazza.isNotEmpty()) {
+                    val nuova = stato.mazzoCarteRazza.removeAt(0)
+                    stato.mercatoComune.add(nuova)
+                }
+                
+                println("LOG: G${sg.giocatore.id} ha preso ${scelta.nome} dal mercato.")
+            }
+        }
+    }
 
 
 }

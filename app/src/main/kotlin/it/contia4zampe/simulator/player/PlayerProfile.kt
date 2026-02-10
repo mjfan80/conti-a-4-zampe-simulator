@@ -5,6 +5,8 @@ import it.contia4zampe.simulator.engine.StatoGiocatoreGiornata
 import it.contia4zampe.simulator.model.Cane
 import it.contia4zampe.simulator.model.SceltaCucciolo // Importiamo l'enum dal model
 import it.contia4zampe.simulator.player.AzioneGiocatore
+import it.contia4zampe.simulator.model.CartaRazza
+
 
 interface PlayerProfile {
 
@@ -18,4 +20,10 @@ interface PlayerProfile {
         statoGiocatore: StatoGiocatoreGiornata,
         cucciolo: Cane
     ): SceltaCucciolo
+
+     // NUOVO: Sceglie una carta tra quelle scoperte sul tavolo
+    fun scegliCartaDalMercato(
+        giocatore: StatoGiocatoreGiornata,
+        mercato: List<CartaRazza>
+    ): CartaRazza
 }

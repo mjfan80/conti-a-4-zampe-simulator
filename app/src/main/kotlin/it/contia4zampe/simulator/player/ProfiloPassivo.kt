@@ -4,6 +4,7 @@ import it.contia4zampe.simulator.engine.StatoGiornata
 import it.contia4zampe.simulator.engine.StatoGiocatoreGiornata
 import it.contia4zampe.simulator.model.Cane
 import it.contia4zampe.simulator.model.SceltaCucciolo
+import it.contia4zampe.simulator.model.CartaRazza
 
 class ProfiloPassivo : PlayerProfile {
 
@@ -21,5 +22,13 @@ class ProfiloPassivo : PlayerProfile {
     ): SceltaCucciolo {
         // Il profilo passivo è "pigro" o conservativo: vende per fare cassa subito
         return SceltaCucciolo.VENDI
+    }
+
+    override fun scegliCartaDalMercato(
+        giocatore: StatoGiocatoreGiornata,
+        mercato: List<CartaRazza>
+    ): CartaRazza {
+        // Strategia base: prendi la prima carta della fila
+        return mercato.first()
     }
 }

@@ -1,0 +1,7 @@
+./gradlew clean test
+
+
+git add .
+git commit -m "Add Gioca Carta Razza action and builder profile"
+git push
+
