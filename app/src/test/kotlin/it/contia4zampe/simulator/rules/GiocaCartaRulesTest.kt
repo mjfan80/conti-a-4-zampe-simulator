@@ -7,9 +7,10 @@ import org.junit.jupiter.api.Test
 class GiocaCartaRulesTest {
 
     @Test
-    fun `giocare una carta la sposta dalla mano alla plancia e crea due adulti`() {
+    fun `giocare una carta la sposta dalla mano alla plancia e scala i doin`() {
+        // Setup delle carte
         val carta1 = CartaRazza(
-            nome = "Test",
+            nome = "Test1",
             costo = 3,
             rendita = 1,
             puntiBase = 1,
@@ -28,45 +29,60 @@ class GiocaCartaRulesTest {
             cani = mutableListOf()
         )
 
+        // Setup giocatore con plancia a 3 righe vuote
         val giocatore = Giocatore(
             id = 1,
             doin = 10,
             debiti = 0,
-            plancia = PlanciaGiocatore(listOf(mutableListOf())),
-            mano = mutableListOf(carta1)
+            plancia = PlanciaGiocatore(
+                righe = listOf(
+                    mutableListOf(), // riga 0
+                    mutableListOf(), // riga 1
+                    mutableListOf()  // riga 2
+                )
+            ),
+            mano = mutableListOf(carta1, carta2)
         )
-        giocatore.mano.add(carta2)
 
-        giocaCartaRazza(giocatore, carta2)
+        // ESECUZIONE: Chiamiamo la funzione corretta 'eseguiGiocaCarta'
+        // Proviamo a giocare la carta2 (costo 6) nella riga centrale (indice 1)
+        val esito = eseguiGiocaCarta(
+            giocatore = giocatore,
+            carta = carta2,
+            indiceRiga = 1,
+            indiceSlot = 0
+        )
 
-        //assertEquals(2, giocatore.plancia.righe.first().first().cani.size)
-        assertEquals(4, giocatore.doin)
-        assertEquals(1, giocatore.mano.size)
-        assertEquals(1, giocatore.plancia.righe.first().size)
+        // VERIFICHE
+        assertEquals(true, esito, "L'azione dovrebbe essere riuscita")
+        assertEquals(4, giocatore.doin, "I doin dovrebbero essere 10 - 6 = 4")
+        assertEquals(1, giocatore.mano.size, "Dovrebbe essere rimasta solo una carta in mano")
+        assertEquals(1, giocatore.plancia.righe[1].size, "La riga 1 dovrebbe contenere una carta")
+        assertEquals("Test2", giocatore.plancia.righe[1][0].nome)
     }
 
-
     @Test
-fun `a inizio giornata le carte nuove ricevono due cani adulti`() {
-    val carta = CartaRazza(
-        nome = "Test",
-        costo = 3,
-        rendita = 1,
-        puntiBase = 1,
-        puntiUpgrade = 2,
-        taglia = Taglia.MEDIA,
-        cani = mutableListOf()
-    )
+    fun `a inizio giornata le carte nuove ricevono due cani adulti`() {
+        val carta = CartaRazza(
+            nome = "Test",
+            costo = 3,
+            rendita = 1,
+            puntiBase = 1,
+            puntiUpgrade = 2,
+            taglia = Taglia.MEDIA,
+            cani = mutableListOf()
+        )
 
-    val giocatore = Giocatore(
-        id = 1,
-        doin = 0,
-        debiti = 0,
-        plancia = PlanciaGiocatore(listOf(mutableListOf(carta)))
-    )
+        val giocatore = Giocatore(
+            id = 1,
+            doin = 0,
+            debiti = 0,
+            plancia = PlanciaGiocatore(listOf(mutableListOf(carta), mutableListOf(), mutableListOf()))
+        )
 
-    applicaPopolamentoCarteNuove(giocatore)
+        applicaPopolamentoCarteNuove(giocatore)
 
-    assertEquals(2, carta.cani.size)
-}
+        assertEquals(2, carta.cani.size)
+        assertEquals(StatoCane.ADULTO, carta.cani[0].stato)
+    }
 }

@@ -1,7 +1,6 @@
 package it.contia4zampe.simulator.engine
 
 import it.contia4zampe.simulator.rules.*
-import it.contia4zampe.simulator.player.AzioneGiocatore
 import it.contia4zampe.simulator.model.*
 
 class GiornataEngine {
@@ -10,97 +9,60 @@ class GiornataEngine {
 
     fun eseguiGiornata(stato: StatoGiornata) {
         inizioGiornata(stato)
-        turniGiocatori(stato)
+        faseTurni(stato)
         fineGiornata(stato)
     }
 
     private fun inizioGiornata(stato: StatoGiornata) {
         stato.fase = FaseGiornata.INIZIO
 
-        // 1. Rendita & 2. Popolamento
         for (sg in stato.giocatori) {
-            applicaRenditaNetta(sg.giocatore)
-            applicaPopolamentoCarteNuove(sg.giocatore)
-        }
-
-        // 3. Gestione dei cuccioli maturi
-        for (sg in stato.giocatori) {
+            val g = sg.giocatore
+            applicaRenditaNetta(g)
+            applicaPopolamentoCarteNuove(g)
             applicaMaturazioneCuccioli(sg, stato.numero)
+            applicaRisoluzioneAccoppiamenti(g, stato.numero, dado)
+            applicaRisoluzioneAddestramento(g)
+            applicaEffettiInizioGiornata(g)
         }
 
-        // 4. Risoluzione degli accoppiamenti
-        for (sg in stato.giocatori) {
-            risolviAccoppiamenti(sg.giocatore, stato.numero)
-        }
-
-        // 5. Risoluzione addestramento
-        for (sg in stato.giocatori) {
-            applicaRisoluzioneAddestramento(sg.giocatore)
-        }
-
-        // 6. Effetti "a inizio Giornata" (Usa la Rule esterna)
-        for (sg in stato.giocatori) {
-            applicaEffettiInizioGiornata(sg.giocatore)
-        }
-
-        // 7. Preparazione dei giocatori (Reset OPEN)
-        preparaGiocatori(stato)
-
-        // 8. Pesca dal mercato comune
+        // Reset stati e Draft
+        preparaGiocatoriPerTurni(stato)
         eseguiDraftMercato(stato)
     }
 
-    private fun turniGiocatori(stato: StatoGiornata) {
+    private fun faseTurni(stato: StatoGiornata) {
         stato.fase = FaseGiornata.TURNI
 
         while (true) {
             val giocatoriOpen = stato.giocatori.filter { it.statoTurno == StatoTurno.OPEN }
             if (giocatoriOpen.isEmpty()) break
 
-            for (statoGiocatore in giocatoriOpen) {
-                if (stato.inChiusura && statoGiocatore.haFattoUltimoTurno) {
-                    continue
+            for (sg in giocatoriOpen) {
+                if (stato.inChiusura && sg.haFattoUltimoTurno) continue
+
+                // 1. Il profilo decide (Principale, Blocco Secondarie o Passa)
+                val scelta = sg.profilo.decidiAzione(stato, sg)
+
+                // 2. Esecuzione
+                eseguiAzione(scelta, sg, stato)
+
+                // 3. Gestione fine turno
+                // Il turno finisce SEMPRE dopo un'azione, a meno che non sia un'azione 
+                // speciale che non consuma il turno (ma nel nostro gioco non esistono).
+                
+                // Se l'azione ha il flag chiudeTurno (Passa o Vendita con Pesca), 
+                // il giocatore diventa CLOSED per il resto della giornata.
+                if (scelta.chiudeTurno) {
+                    passaGiocatore(stato, sg)
                 }
 
-                val azione = statoGiocatore.profilo.decidiAzione(stato, statoGiocatore)
-
-                // LOGICA CORRETTA DEL WHEN
-                when (azione) {
-                    is AzioneGiocatore.GiocaCartaRazza -> {
-                        giocaCartaRazza(statoGiocatore.giocatore, azione.carta)
-                    }
-
-                    is AzioneGiocatore.VendiCani -> {
-                        // Ora che è isolato, Kotlin capisce che azione è VendiCani!
-                        val lista = azione.vendite.map { it.carta to it.cane }
-                        
-                        val haPescatoExtra = eseguiAzioneVendita(
-                            statoGiocatore.giocatore, 
-                            lista, 
-                            azione.pescaCartaInveceDi5Doin
-                        )
-                        
-                        if (haPescatoExtra && stato.mazzoCarteRazza.isNotEmpty()) {
-                            val nuova = stato.mazzoCarteRazza.removeAt(0)
-                            statoGiocatore.giocatore.mano.add(nuova)
-                            println("LOG: G${statoGiocatore.giocatore.id} vende e pesca extra.")
-                        }
-                    }
-
-                    is AzioneGiocatore.Passa -> {
-                        // Non fa nulla di specifico, chiudeTurno farà il resto
-                    }
-                }
-
-                if (azione.chiudeTurno) {
-                    passaGiocatore(stato, statoGiocatore)
-                    if (stato.inChiusura) {
-                        statoGiocatore.haFattoUltimoTurno = true
-                    }
+                // Se siamo in chiusura e il giocatore ha appena agito, ha consumato il suo ultimo turno
+                if (stato.inChiusura) {
+                    sg.haFattoUltimoTurno = true
                 }
             }
 
-            // Verifica uscita dal loop turni
             if (stato.inChiusura && stato.giocatori.all { it.statoTurno == StatoTurno.CLOSED || it.haFattoUltimoTurno }) {
                 break
             }
@@ -114,60 +76,33 @@ class GiornataEngine {
         }
     }
 
-    private fun preparaGiocatori(stato: StatoGiornata) {
+    private fun preparaGiocatoriPerTurni(stato: StatoGiornata) {
         for (sg in stato.giocatori) {
             sg.statoTurno = StatoTurno.OPEN
             sg.haFattoUltimoTurno = false
         }
-        println("LOG: Turno del Primo Giocatore indice ${stato.indicePrimoGiocatore}")
     }
 
-    private fun eseguiDraftMercato(stato: StatoGiornata) {
-        val nGiocatori = stato.giocatori.size
-        for (i in 0 until nGiocatori) {
-            val currentIndex = (stato.indicePrimoGiocatore + i) % nGiocatori
-            val sg = stato.giocatori[currentIndex]
-            
-            if (stato.mercatoComune.isNotEmpty()) {
-                val scelta = sg.profilo.scegliCartaDalMercato(sg, stato.mercatoComune)
-                stato.mercatoComune.remove(scelta)
-                sg.giocatore.mano.add(scelta)
-                
-                if (stato.mazzoCarteRazza.isNotEmpty()) {
-                    val nuova = stato.mazzoCarteRazza.removeAt(0)
-                    stato.mercatoComune.add(nuova)
-                }
-            }
-        }
-    }
+    /**
+     * Gestisce il passaggio di un giocatore allo stato CLOSED.
+     * Incrementa il contatore dei passaggi e verifica se attivare la fase di chiusura.
+     */
+    private fun passaGiocatore(stato: StatoGiornata, statoGiocatore: StatoGiocatoreGiornata) {
+        // Se è già chiuso, non facciamo nulla (evitiamo doppi conteggi)
+        if (statoGiocatore.statoTurno == StatoTurno.CLOSED) return
 
-    private fun passaGiocatore(stato: StatoGiornata, giocatore: StatoGiocatoreGiornata) {
-        if (giocatore.statoTurno == StatoTurno.CLOSED) return
-        giocatore.statoTurno = StatoTurno.CLOSED
+        // 1. Cambiamo lo stato del giocatore
+        statoGiocatore.statoTurno = StatoTurno.CLOSED
+        
+        // 2. Incrementiamo i passaggi totali della giornata
         stato.passaggi++
-        if (stato.passaggi >= stato.sogliaPassaggi) {
-            stato.inChiusura = true
-        }
-    }
 
-    private fun risolviAccoppiamenti(giocatore: Giocatore, giornataCorrente: Int) {
-        for (carta in giocatore.plancia.righe.flatten()) {
-            val inAccoppiamento = carta.cani.filter { it.stato == StatoCane.IN_ACCOPPIAMENTO }
-            if (inAccoppiamento.size == 2) {
-                val lancio = dado.lancia()
-                val nati = when (lancio) {
-                    1 -> 0
-                    in 2..5 -> 1
-                    6 -> 2
-                    else -> 0
-                }
-                repeat(nati) {
-                    carta.cani.add(Cane.crea(StatoCane.CUCCIOLO, giornataCorrente))
-                }
-                for (cane in inAccoppiamento) {
-                    cane.stato = cane.statoPrecedente ?: StatoCane.ADULTO
-                    cane.statoPrecedente = null
-                }
+        // 3. Verifichiamo se abbiamo raggiunto la soglia per la chiusura
+        // (La soglia è definita nel regolamento: 2 giocatori = 1 pass, 3-4 = 2 pass, ecc.)
+        if (stato.passaggi >= stato.sogliaPassaggi) {
+            if (!stato.inChiusura) {
+                stato.inChiusura = true
+                println("LOG: Soglia passaggi raggiunta. La Giornata entra in CHIUSURA.")
             }
         }
     }
