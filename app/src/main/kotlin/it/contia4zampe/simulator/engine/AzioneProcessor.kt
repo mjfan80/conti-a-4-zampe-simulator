@@ -44,9 +44,20 @@ fun eseguiAzione(
 
 private fun eseguiSingolaAzioneSecondaria(subAzione: AzioneSecondaria, sg: StatoGiocatoreGiornata) {
     when (subAzione) {
+        is AzioneSecondaria.AcquistaMiniPlancia -> {
+            if (sg.giocatore.doin >= 5) {
+                val ok = sg.giocatore.plancia.acquistaMiniPlancia(subAzione.indiceRiga, subAzione.slotSinistro)
+                if (ok) {
+                    sg.giocatore.doin -= 5
+                    println("LOG: G${sg.giocatore.id} acquista mini-plancia addestramento")
+                }
+            }
+        }
         is AzioneSecondaria.AddestraCane -> {
-            // Qui chiameremo la regola specifica (da implementare)
-            println("LOG: G${sg.giocatore.id} mette cane in addestramento")
+            val ok = provaAvviareAddestramento(sg.giocatore, subAzione.carta, subAzione.cane)
+            if (ok) {
+                println("LOG: G${sg.giocatore.id} mette cane in addestramento")
+            }
         }
         is AzioneSecondaria.PagaDebito -> {
             if (sg.giocatore.debiti > 0 && sg.giocatore.doin >= 2) {

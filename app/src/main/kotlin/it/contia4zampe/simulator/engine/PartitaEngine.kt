@@ -3,6 +3,7 @@ package it.contia4zampe.simulator.engine
 import it.contia4zampe.simulator.model.Giocatore
 import it.contia4zampe.simulator.model.PlanciaGiocatore
 import it.contia4zampe.simulator.player.ProfiloPassivo
+import it.contia4zampe.simulator.rules.deveTerminarePartita
 
 class PartitaEngine {
 
@@ -19,8 +20,8 @@ class PartitaEngine {
             // Eseguo la giornata sullo stesso oggetto
             giornataEngine.eseguiGiornata(statoPartita)
 
-            // Controllo fine partita
-            if (statoPartita.numero >= 15) { // Esempio: fermiamoci al giorno 10
+            // Controllo fine partita (mazzo eventi esaurito o plancia piena)
+            if (deveTerminarePartita(statoPartita)) {
                 statoPartita.partitaFinita = true
                 println("=== PARTITA TERMINATA ===")
             } else {
