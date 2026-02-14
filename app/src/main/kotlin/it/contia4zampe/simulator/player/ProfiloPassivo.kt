@@ -31,4 +31,12 @@ class ProfiloPassivo : PlayerProfile {
         // Strategia base: prendi la prima carta della fila
         return mercato.first()
     }
+
+    override fun vuoleDichiarareAccoppiamento(
+        statoGiocatore: StatoGiocatoreGiornata,
+        carta: CartaRazza
+    ): Boolean {
+        // Profilo passivo: evita rischio/complessità e non dichiara accoppiamenti
+        return false
+    }
 }

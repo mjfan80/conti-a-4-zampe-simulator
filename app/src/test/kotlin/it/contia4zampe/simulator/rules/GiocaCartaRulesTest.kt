@@ -85,4 +85,47 @@ class GiocaCartaRulesTest {
         assertEquals(2, carta.cani.size)
         assertEquals(StatoCane.ADULTO, carta.cani[0].stato)
     }
+
+    @Test
+    fun `non deve giocare taglia piccola nella riga bassa`() {
+        val cartaPiccola = CartaRazza("Piccola", 2, 1, 1, 2, Taglia.PICCOLA)
+        val giocatore = Giocatore(
+            id = 1,
+            doin = 10,
+            debiti = 0,
+            plancia = PlanciaGiocatore(listOf(mutableListOf(), mutableListOf(), mutableListOf())),
+            mano = mutableListOf(cartaPiccola)
+        )
+
+        val esito = eseguiGiocaCarta(giocatore, cartaPiccola, indiceRiga = PlanciaGiocatore.RIGA_BASSA, indiceSlot = 0)
+
+        assertEquals(false, esito)
+        assertEquals(10, giocatore.doin)
+        assertEquals(1, giocatore.mano.size)
+        assertEquals(0, giocatore.plancia.righe[PlanciaGiocatore.RIGA_BASSA].size)
+    }
+
+    @Test
+    fun `riga alta accetta massimo quattro carte`() {
+        val rigaAlta = mutableListOf(
+            CartaRazza("A", 1, 1, 1, 2, Taglia.MEDIA),
+            CartaRazza("B", 1, 1, 1, 2, Taglia.MEDIA),
+            CartaRazza("C", 1, 1, 1, 2, Taglia.MEDIA),
+            CartaRazza("D", 1, 1, 1, 2, Taglia.MEDIA)
+        )
+
+        val cartaNuova = CartaRazza("Nuova", 1, 1, 1, 2, Taglia.GRANDE)
+        val giocatore = Giocatore(
+            id = 1,
+            doin = 10,
+            debiti = 0,
+            plancia = PlanciaGiocatore(listOf(mutableListOf(), mutableListOf(), rigaAlta)),
+            mano = mutableListOf(cartaNuova)
+        )
+
+        val esito = eseguiGiocaCarta(giocatore, cartaNuova, indiceRiga = PlanciaGiocatore.RIGA_ALTA, indiceSlot = 4)
+
+        assertEquals(false, esito)
+        assertEquals(4, giocatore.plancia.righe[PlanciaGiocatore.RIGA_ALTA].size)
+    }
 }

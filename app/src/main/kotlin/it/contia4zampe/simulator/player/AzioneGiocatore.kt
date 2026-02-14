@@ -53,7 +53,7 @@ sealed class AzioneGiocatore {
 
 // Definiamo cosa può essere un'azione secondaria
 sealed class AzioneSecondaria {
-    object AcquistaMiniPlancia : AzioneSecondaria()
+    data class AcquistaMiniPlancia(val indiceRiga: Int, val slotSinistro: Int) : AzioneSecondaria()
     data class AddestraCane(val carta: CartaRazza, val cane: Cane) : AzioneSecondaria()
     object SpostaMiniPlancia : AzioneSecondaria()
     object PagaDebito : AzioneSecondaria()
