@@ -3,18 +3,57 @@ package it.contia4zampe.simulator.model
 data class MiniPlanciaAddestramento(
     val indiceRiga: Int,
     val slotSinistro: Int,
-    var slotOccupati: Int = 0
+    var slotSinistroOccupato: Boolean = false,
+    var slotDestroOccupato: Boolean = false
 ) {
-    companion object {
-        const val SLOT_TOTALI = 2
-    }
-
     fun copreSlot(indiceRigaCarta: Int, indiceSlotCarta: Int): Boolean {
         if (indiceRiga != indiceRigaCarta) return false
         return indiceSlotCarta == slotSinistro || indiceSlotCarta == (slotSinistro + 1)
     }
 
-    fun haSpazioLibero(): Boolean = slotOccupati < SLOT_TOTALI
+    fun haSpazioLiberoPerSlot(indiceSlotCarta: Int): Boolean {
+        return when (indiceSlotCarta) {
+            slotSinistro -> !slotSinistroOccupato
+            slotSinistro + 1 -> !slotDestroOccupato
+            else -> false
+        }
+    }
+
+    fun occupaSlot(indiceSlotCarta: Int): Boolean {
+        if (!haSpazioLiberoPerSlot(indiceSlotCarta)) return false
+
+        return when (indiceSlotCarta) {
+            slotSinistro -> {
+                slotSinistroOccupato = true
+                true
+            }
+
+            slotSinistro + 1 -> {
+                slotDestroOccupato = true
+                true
+            }
+
+            else -> false
+        }
+    }
+
+    fun liberaSlot(indiceSlotCarta: Int): Boolean {
+        return when (indiceSlotCarta) {
+            slotSinistro -> {
+                if (!slotSinistroOccupato) return false
+                slotSinistroOccupato = false
+                true
+            }
+
+            slotSinistro + 1 -> {
+                if (!slotDestroOccupato) return false
+                slotDestroOccupato = false
+                true
+            }
+
+            else -> false
+        }
+    }
 }
 
 data class PlanciaGiocatore(
@@ -105,7 +144,7 @@ data class PlanciaGiocatore(
     fun haSlotAddestramentoDisponibilePerCarta(carta: CartaRazza): Boolean {
         val posizione = trovaPosizioneCarta(carta) ?: return false
         return miniPlanceAddestramento.any { mini ->
-            mini.copreSlot(posizione.first, posizione.second) && mini.haSpazioLibero()
+            mini.copreSlot(posizione.first, posizione.second) && mini.haSpazioLiberoPerSlot(posizione.second)
         }
     }
 
@@ -113,22 +152,20 @@ data class PlanciaGiocatore(
         val posizione = trovaPosizioneCarta(carta) ?: return false
 
         val mini = miniPlanceAddestramento.firstOrNull {
-            it.copreSlot(posizione.first, posizione.second) && it.haSpazioLibero()
+            it.copreSlot(posizione.first, posizione.second) && it.haSpazioLiberoPerSlot(posizione.second)
         } ?: return false
 
-        mini.slotOccupati++
-        return true
+        return mini.occupaSlot(posizione.second)
     }
 
     fun liberaUnoSlotAddestramentoPerCarta(carta: CartaRazza): Boolean {
         val posizione = trovaPosizioneCarta(carta) ?: return false
 
         val mini = miniPlanceAddestramento.firstOrNull {
-            it.copreSlot(posizione.first, posizione.second) && it.slotOccupati > 0
+            it.copreSlot(posizione.first, posizione.second)
         } ?: return false
 
-        mini.slotOccupati--
-        return true
+        return mini.liberaSlot(posizione.second)
     }
 
     private fun trovaPosizioneCarta(carta: CartaRazza): Pair<Int, Int>? {

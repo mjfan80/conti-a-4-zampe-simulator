@@ -87,4 +87,29 @@ class PlanciaGiocatoreTest {
         // Coppia non valida
         assertFalse(plancia.acquistaMiniPlancia(PlanciaGiocatore.RIGA_BASSA, 1))
     }
+
+    @Test
+    fun `lato sinistro occupato non blocca il lato destro e viceversa`() {
+        val cartaSinistra = CartaRazza("Sinistra", 1, 1, 1, 2, Taglia.MEDIA)
+        val cartaDestra = CartaRazza("Destra", 1, 1, 1, 2, Taglia.MEDIA)
+        val plancia = PlanciaGiocatore(listOf(mutableListOf(cartaSinistra, cartaDestra)))
+
+        assertTrue(plancia.acquistaMiniPlancia(PlanciaGiocatore.RIGA_BASSA, 0))
+        val mini = plancia.miniPlanceAddestramento.first()
+
+        mini.slotSinistroOccupato = true
+        mini.slotDestroOccupato = false
+
+        assertFalse(plancia.haSlotAddestramentoDisponibilePerCarta(cartaSinistra))
+        assertTrue(plancia.haSlotAddestramentoDisponibilePerCarta(cartaDestra))
+
+        assertFalse(plancia.occupaSlotAddestramentoPerCarta(cartaSinistra))
+        assertTrue(plancia.occupaSlotAddestramentoPerCarta(cartaDestra))
+
+        assertTrue(mini.slotSinistroOccupato)
+        assertTrue(mini.slotDestroOccupato)
+
+        assertTrue(plancia.liberaUnoSlotAddestramentoPerCarta(cartaDestra))
+        assertFalse(mini.slotDestroOccupato)
+    }
 }

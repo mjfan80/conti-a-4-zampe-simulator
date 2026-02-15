@@ -15,7 +15,7 @@ class AddestramentoRulesTest {
 
         val plancia = PlanciaGiocatore(listOf(mutableListOf(cartaA, cartaB)))
         plancia.acquistaMiniPlancia(0, 0)
-        plancia.miniPlanceAddestramento[0].slotOccupati = 1
+        plancia.miniPlanceAddestramento[0].slotSinistroOccupato = true
 
         assertFalse(cartaA.upgrade)
         val giocatore = Giocatore(1, 10, 0, plancia)
@@ -24,7 +24,7 @@ class AddestramentoRulesTest {
 
         assertEquals(StatoCane.ADULTO_ADDESTRATO, caneStudente.stato)
         assertTrue(cartaA.upgrade)
-        assertEquals(0, plancia.miniPlanceAddestramento[0].slotOccupati)
+        assertFalse(plancia.miniPlanceAddestramento[0].slotSinistroOccupato)
     }
 
     @Test
@@ -46,7 +46,7 @@ class AddestramentoRulesTest {
         assertTrue(esito)
         assertEquals(3, giocatore.doin)
         assertEquals(StatoCane.IN_ADDESTRAMENTO, c1.stato)
-        assertEquals(1, plancia.miniPlanceAddestramento[0].slotOccupati)
+        assertTrue(plancia.miniPlanceAddestramento[0].slotSinistroOccupato)
     }
 
     @Test
@@ -64,5 +64,40 @@ class AddestramentoRulesTest {
         assertFalse(esito)
         assertEquals(10, giocatore.doin)
         assertEquals(StatoCane.ADULTO, c1.stato)
+    }
+
+    @Test
+    fun `con un lato occupato addestramento consentito solo sulla carta del lato libero`() {
+        val cartaSinistra = CartaRazza("Levriero", 6, 2, 5, 8, Taglia.MEDIA)
+        val cartaDestra = CartaRazza("Carlino", 4, 1, 3, 6, Taglia.PICCOLA)
+
+        val caneSinistroA = Cane.crea(StatoCane.ADULTO)
+        val caneSinistroB = Cane.crea(StatoCane.ADULTO)
+        val caneSinistroC = Cane.crea(StatoCane.ADULTO)
+        cartaSinistra.cani.addAll(listOf(caneSinistroA, caneSinistroB, caneSinistroC))
+
+        val caneDestroA = Cane.crea(StatoCane.ADULTO)
+        val caneDestroB = Cane.crea(StatoCane.ADULTO)
+        val caneDestroC = Cane.crea(StatoCane.ADULTO)
+        cartaDestra.cani.addAll(listOf(caneDestroA, caneDestroB, caneDestroC))
+
+        val plancia = PlanciaGiocatore(listOf(mutableListOf(cartaSinistra, cartaDestra)))
+        plancia.acquistaMiniPlancia(0, 0)
+
+        val mini = plancia.miniPlanceAddestramento.first()
+        mini.slotSinistroOccupato = true
+        mini.slotDestroOccupato = false
+
+        val giocatore = Giocatore(1, 10, 0, plancia)
+
+        val esitoSinistra = provaAvviareAddestramento(giocatore, cartaSinistra, caneSinistroA)
+        val esitoDestra = provaAvviareAddestramento(giocatore, cartaDestra, caneDestroA)
+
+        assertFalse(esitoSinistra)
+        assertTrue(esitoDestra)
+        assertEquals(StatoCane.ADULTO, caneSinistroA.stato)
+        assertEquals(StatoCane.IN_ADDESTRAMENTO, caneDestroA.stato)
+        assertTrue(mini.slotSinistroOccupato)
+        assertTrue(mini.slotDestroOccupato)
     }
 }
