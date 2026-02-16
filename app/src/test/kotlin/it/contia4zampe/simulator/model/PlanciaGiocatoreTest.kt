@@ -71,12 +71,8 @@ class PlanciaGiocatoreTest {
     }
 
     @Test
-    fun `acquisto mini plancia richiede coppia valida e due carte adiacenti`() {
-        val riga = mutableListOf(
-            CartaRazza("A", 1, 1, 1, 2, Taglia.MEDIA),
-            CartaRazza("B", 1, 1, 1, 2, Taglia.MEDIA)
-        )
-        val plancia = PlanciaGiocatore(listOf(riga, mutableListOf(), mutableListOf()))
+    fun `acquisto mini plancia richiede solo coppia valida anche senza carte sotto`() {
+        val plancia = PlanciaGiocatore(listOf(mutableListOf(), mutableListOf(), mutableListOf()))
 
         assertTrue(plancia.acquistaMiniPlancia(PlanciaGiocatore.RIGA_BASSA, 0))
         assertEquals(1, plancia.miniPlanceAddestramento.size)
@@ -86,5 +82,25 @@ class PlanciaGiocatoreTest {
 
         // Coppia non valida
         assertFalse(plancia.acquistaMiniPlancia(PlanciaGiocatore.RIGA_BASSA, 1))
+    }
+
+    @Test
+    fun `slot sinistro e destro sono indipendenti nella stessa mini plancia`() {
+        val cartaSinistra = CartaRazza("Beagle", 5, 2, 4, 7, Taglia.PICCOLA)
+        val cartaDestra = CartaRazza("Border Collie", 6, 2, 6, 9, Taglia.MEDIA)
+        val plancia = PlanciaGiocatore(
+            listOf(mutableListOf(cartaSinistra, cartaDestra), mutableListOf(), mutableListOf())
+        )
+
+        assertTrue(plancia.acquistaMiniPlancia(PlanciaGiocatore.RIGA_BASSA, 0))
+        val miniPlancia = plancia.miniPlanceAddestramento.first()
+
+        miniPlancia.slotSinistroOccupato = true
+        miniPlancia.slotDestroOccupato = false
+
+        assertFalse(plancia.haSlotAddestramentoDisponibilePerCarta(cartaSinistra))
+        assertTrue(plancia.haSlotAddestramentoDisponibilePerCarta(cartaDestra))
+        assertTrue(plancia.occupaSlotAddestramentoPerCarta(cartaDestra))
+        assertTrue(miniPlancia.slotDestroOccupato)
     }
 }
