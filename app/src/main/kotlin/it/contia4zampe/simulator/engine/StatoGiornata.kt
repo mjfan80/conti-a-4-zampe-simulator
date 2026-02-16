@@ -14,5 +14,6 @@ data class StatoGiornata(
     // NUOVI CAMPI:
     val mercatoComune: MutableList<CartaRazza> = mutableListOf(),
     var indicePrimoGiocatore: Int = 0, // Chi inizia questo giorno
-    val mazzoCarteRazza: MutableList<CartaRazza> = mutableListOf() // Da dove peschiamo
+    val mazzoCarteRazza: MutableList<CartaRazza> = mutableListOf(), // Da dove peschiamo
+    val maxGiornateEvento: Int = 15
 )

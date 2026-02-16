@@ -27,11 +27,11 @@ class ProfiloCostruttore : PlayerProfile {
                 for (indiceRiga in 0 until giocatore.plancia.righe.size) {
                     
                     // Usiamo la regola di posizionamento che abbiamo definito in GiocaCartaRules
-                    if (puòPiazzareInRiga(carta, indiceRiga)) {
+                    if (puòPiazzareInRiga(giocatore.plancia, carta, indiceRiga)) {
                         val riga = giocatore.plancia.righe[indiceRiga]
                         
                         // 4. Verifichiamo se c'è spazio fisico (es. max 4 slot per riga)
-                        if (riga.size < 4) {
+                        if (riga.size < giocatore.plancia.capacitaRiga(indiceRiga)) {
                             // ABBIAMO TROVATO UNA COMBINAZIONE VALIDA!
                             // Restituiamo l'azione con tutti i parametri richiesti
                             return AzioneGiocatore.GiocaCartaRazza(
@@ -62,5 +62,13 @@ class ProfiloCostruttore : PlayerProfile {
         mercato: List<CartaRazza>
     ): CartaRazza {
         return mercato.first()
+    }
+
+    override fun vuoleDichiarareAccoppiamento(
+        statoGiocatore: StatoGiocatoreGiornata,
+        carta: CartaRazza
+    ): Boolean {
+        // Profilo costruttore: cerca crescita e quindi prova sempre ad accoppiare
+        return true
     }
 }

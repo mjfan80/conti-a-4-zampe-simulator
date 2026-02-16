@@ -26,4 +26,10 @@ interface PlayerProfile {
         giocatore: StatoGiocatoreGiornata,
         mercato: List<CartaRazza>
     ): CartaRazza
+
+    // Decisione di fine giornata: dichiarare o meno accoppiamento sulla carta
+    fun vuoleDichiarareAccoppiamento(
+        statoGiocatore: StatoGiocatoreGiornata,
+        carta: CartaRazza
+    ): Boolean
 }

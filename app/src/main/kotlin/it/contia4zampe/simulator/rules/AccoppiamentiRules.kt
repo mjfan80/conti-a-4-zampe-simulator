@@ -2,6 +2,48 @@ package it.contia4zampe.simulator.rules
 
 import it.contia4zampe.simulator.model.*
 import it.contia4zampe.simulator.engine.Dado
+import it.contia4zampe.simulator.engine.StatoGiocatoreGiornata
+
+fun applicaDichiarazioneAccoppiamenti(statoGiocatore: StatoGiocatoreGiornata) {
+    val giocatore = statoGiocatore.giocatore
+    val profilo = statoGiocatore.profilo
+
+    for (carta in giocatore.plancia.righe.flatten()) {
+        if (profilo.vuoleDichiarareAccoppiamento(statoGiocatore, carta)) {
+            provaDichiarareAccoppiamento(carta)
+        }
+    }
+}
+
+fun provaDichiarareAccoppiamento(carta: CartaRazza): Boolean {
+    // Una carta può avere un solo accoppiamento alla volta
+    val giaInAccoppiamento = carta.cani.count { it.stato == StatoCane.IN_ACCOPPIAMENTO }
+    if (giaInAccoppiamento > 0) {
+        return false
+    }
+
+    val candidati = mutableListOf<Cane>()
+    for (cane in carta.cani) {
+        if (cane.stato == StatoCane.ADULTO || cane.stato == StatoCane.ADULTO_ADDESTRATO) {
+            candidati.add(cane)
+        }
+
+        if (candidati.size == 2) {
+            break
+        }
+    }
+
+    if (candidati.size < 2) {
+        return false
+    }
+
+    for (cane in candidati) {
+        cane.statoPrecedente = cane.stato
+        cane.stato = StatoCane.IN_ACCOPPIAMENTO
+    }
+
+    return true
+}
 
 fun applicaRisoluzioneAccoppiamenti(giocatore: Giocatore, giornataCorrente: Int, dado: Dado) {
     for (carta in giocatore.plancia.righe.flatten()) {

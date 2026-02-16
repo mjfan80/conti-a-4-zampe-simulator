@@ -72,11 +72,19 @@ class GiornataEngine {
     private fun fineGiornata(stato: StatoGiornata) {
         stato.fase = FaseGiornata.FINE
         for (sg in stato.giocatori) {
+            applicaDichiarazioneAccoppiamenti(sg)
             applicaUpkeep(sg.giocatore)
         }
     }
 
     private fun preparaGiocatoriPerTurni(stato: StatoGiornata) {
+        // Dal regolamento: il primo giocatore passa a sinistra a inizio giornata.
+        // Nella giornata 1 il primo giocatore è quello determinato dal setup,
+        // quindi la rotazione parte dalla giornata successiva.
+        if (stato.numero > 1 && stato.giocatori.isNotEmpty()) {
+            stato.indicePrimoGiocatore = (stato.indicePrimoGiocatore + 1) % stato.giocatori.size
+        }
+
         for (sg in stato.giocatori) {
             sg.statoTurno = StatoTurno.OPEN
             sg.haFattoUltimoTurno = false

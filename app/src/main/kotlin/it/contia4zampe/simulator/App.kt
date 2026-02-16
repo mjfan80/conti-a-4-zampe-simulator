@@ -1,5 +1,53 @@
 package it.contia4zampe.simulator
 
-fun main() {
-    println("Conti a 4 Zampe – Simulator ready")
+import it.contia4zampe.simulator.engine.InMemorySimulationCollector
+import it.contia4zampe.simulator.engine.PartitaEngine
+import it.contia4zampe.simulator.engine.SimulationConfig
+import it.contia4zampe.simulator.report.CsvReportExporter
+import it.contia4zampe.simulator.report.SimulationReportAggregator
+import java.io.File
+import java.time.Instant
+
+fun main(args: Array<String>) {
+    val options = parseArgs(args)
+
+    val numeroPartite = options["partite"]?.toIntOrNull() ?: 10
+    val numeroGiocatori = options["giocatori"]?.toIntOrNull() ?: 2
+    val maxGiornate = options["max-giornate"]?.toIntOrNull() ?: 15
+    val outputDir = File(options["out-dir"] ?: "reports")
+
+    val config = SimulationConfig(
+        numeroPartite = numeroPartite,
+        numeroGiocatori = numeroGiocatori,
+        maxGiornateEvento = maxGiornate
+    )
+
+    val collector = InMemorySimulationCollector()
+    val engine = PartitaEngine()
+    val result = engine.simula(config, collector)
+
+    val aggregator = SimulationReportAggregator()
+    val summary = aggregator.aggregate(result, collector.dayEndSnapshots)
+
+    val runId = "run-${Instant.now().toEpochMilli()}"
+    val exporter = CsvReportExporter()
+    val exported = exporter.export(summary, result.partite, outputDir, runId)
+
+    println("Simulazione completata: ${result.partite.size} partite")
+    println("Report CSV generati:")
+    println("- ${exported.summaryFile.path}")
+    println("- ${exported.gamesFile.path}")
+    println("- ${exported.playersFile.path}")
+    println("- ${exported.winnerCardsFile.path}")
+}
+
+private fun parseArgs(args: Array<String>): Map<String, String> {
+    val map = mutableMapOf<String, String>()
+    args.forEach { arg ->
+        if (arg.startsWith("--") && arg.contains("=")) {
+            val (k, v) = arg.removePrefix("--").split("=", limit = 2)
+            map[k] = v
+        }
+    }
+    return map
 }
