@@ -9,3 +9,10 @@ git push
 git diff --staged
 
 
+cd /workspace/conti-a-4-zampe-simulator
+
+git remote add origin https://github.com/mjfan80/conti-a-4-zampe-simulator.git 2>/dev/null || \
+git remote set-url origin https://github.com/mjfan80/conti-a-4-zampe-simulator.git
+
+git checkout work
+git push -u https://x-access-token:${GITHUB_TOKEN}@github.com/mjfan80/conti-a-4-zampe-simulator.git work
