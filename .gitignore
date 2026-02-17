@@ -16,3 +16,9 @@ bin/
 # OS
 .DS_Store
 Thumbs.db
+
+
+.vscode/
+*.classpath
+*.project
+.settings/

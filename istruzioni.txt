@@ -1,7 +1,8 @@
 ./gradlew clean test
 
+git status
 
-git add .
+git add app/src
 git commit -m "Add Gioca Carta Razza action and builder profile"
 git push
 
@@ -16,3 +17,12 @@ git remote set-url origin https://github.com/mjfan80/conti-a-4-zampe-simulator.g
 
 git checkout work
 git push -u https://x-access-token:${GITHUB_TOKEN}@github.com/mjfan80/conti-a-4-zampe-simulator.git work
+
+
+git push -u origin feature/regola_capienza (la prima volta che si pusha in un nuovo branch)
+
+git switch main  (per tornare al main)
+git pull
+git switch -c feature/login (per creare nuova feature)
+
+
