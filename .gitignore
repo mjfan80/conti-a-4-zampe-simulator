@@ -22,3 +22,5 @@ Thumbs.db
 *.classpath
 *.project
 .settings/
+app/.settings/
+repository_context.txt
