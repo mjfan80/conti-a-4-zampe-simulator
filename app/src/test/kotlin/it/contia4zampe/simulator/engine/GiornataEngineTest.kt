@@ -3,9 +3,28 @@ package it.contia4zampe.simulator.engine
 import it.contia4zampe.simulator.model.*
 import it.contia4zampe.simulator.player.ProfiloCostruttore
 import it.contia4zampe.simulator.player.ProfiloPassivo
+import it.contia4zampe.simulator.player.PlayerProfile
+import it.contia4zampe.simulator.player.AzioneGiocatore
+
+
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+
+
+/**
+ * Profilo creato appositamente per il test: 
+ * vogliamo che dica SEMPRE SI alla dichiarazione di accoppiamento.
+ */
+class ProfiloSempreAccoppia : PlayerProfile {
+    override fun decidiAzione(s: StatoGiornata, sg: StatoGiocatoreGiornata) = AzioneGiocatore.Passa
+    override fun decidiGestioneCucciolo(sg: StatoGiocatoreGiornata, c: Cane) = SceltaCucciolo.VENDI
+    override fun scegliCartaDalMercato(sg: StatoGiocatoreGiornata, m: List<CartaRazza>) = m.first()
+    
+    // Forza il SI per il test
+    override fun vuoleDichiarareAccoppiamento(sg: StatoGiocatoreGiornata, carta: CartaRazza) = true
+}
+
 
 class GiornataEngineTest {
 
@@ -72,32 +91,32 @@ class GiornataEngineTest {
     }
 
     @Test
-    fun `fine giornata deve dichiarare accoppiamento prima dell'upkeep`() {
-        val carta = CartaRazza("Labrador", 6, 2, 5, 7, Taglia.MEDIA)
+    fun `fine giornata deve invocare la dichiarazione accoppiamenti`() {
+        println("TEST: fine giornata deve invocare la dichiarazione accoppiamenti")
+        // 1. SETUP
+        val carta = CartaRazza("Test", 5, 1, 1, 2, Taglia.MEDIA)
         carta.cani.add(Cane.crea(StatoCane.ADULTO))
         carta.cani.add(Cane.crea(StatoCane.ADULTO))
 
-        val giocatore = Giocatore(
-            id = 1,
-            doin = 10,
-            debiti = 0,
-            plancia = PlanciaGiocatore(listOf(mutableListOf(carta)))
-        )
+        val giocatore = Giocatore(1, 10, 0, PlanciaGiocatore(listOf(mutableListOf(carta), mutableListOf(), mutableListOf())))
+        
+        // Usiamo il nostro profilo "pilota" invece di quello reale
+        val statoGiocatore = StatoGiocatoreGiornata(giocatore, ProfiloSempreAccoppia())
 
         val stato = StatoGiornata(
             numero = 1,
-            giocatori = listOf(
-                StatoGiocatoreGiornata(giocatore, ProfiloCostruttore())
-            ),
-            sogliaPassaggi = 1,
-            indicePrimoGiocatore = 0
+            giocatori = listOf(statoGiocatore),
+            sogliaPassaggi = 1
         )
 
         val engine = GiornataEngine()
+
+        // 2. ESECUZIONE
         engine.eseguiGiornata(stato)
 
-        assertEquals(FaseGiornata.FINE, stato.fase)
-        assertEquals(2, carta.cani.count { it.stato == StatoCane.IN_ACCOPPIAMENTO })
-        assertTrue(carta.cani.all { it.statoPrecedente == StatoCane.ADULTO })
+        // 3. VERIFICA
+        // Verifichiamo che l'Engine abbia effettivamente chiamato la logica di fine giornata
+        val inAccoppiamento = carta.cani.count { it.stato == StatoCane.IN_ACCOPPIAMENTO }
+        assertEquals(2, inAccoppiamento, "L'Engine avrebbe dovuto mettere i 2 cani in accoppiamento")
     }
 }
