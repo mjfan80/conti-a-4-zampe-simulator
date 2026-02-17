@@ -13,6 +13,12 @@ enum class EffettoInizioGiornata {
     DOIN1_RENDITA_UNICORIGA // +1 doin se unica nella riga
 }
 
+enum class EffettoFinePartita {
+    NESSUNO,
+    BONUS_1PV_ADULTO, // +1 PV per ogni cane adulto su questa carta
+    BONUS_2PV_COPPIA_ADULTI   // +2 PV per ogni coppia di cani adulti su questa carta
+}
+
 data class CartaRazza(
     val nome: String,
     val costo: Int,
@@ -25,5 +31,6 @@ data class CartaRazza(
     var collassata: Boolean = false,
     
     // NUOVO: La carta dichiara il suo effetto
-    val effettoInizio: EffettoInizioGiornata = EffettoInizioGiornata.NESSUNO
+    val effettoInizio: EffettoInizioGiornata = EffettoInizioGiornata.NESSUNO,
+    val effettoFine: EffettoFinePartita = EffettoFinePartita.NESSUNO
 )
