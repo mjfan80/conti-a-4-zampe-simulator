@@ -12,7 +12,7 @@ fun gestisciCollassoCarta(giocatore: Giocatore, carta: CartaRazza): Int {
     // Contiamo gli adulti (normali o addestrati)
     var adulti = 0
     for (cane in carta.cani) {
-        if (cane.stato == StatoCane.ADULTO || cane.stato == StatoCane.ADULTO_ADDESTRATO) {
+        if (cane.stato == StatoCane.ADULTO || cane.stato == StatoCane.ADULTO_ADDESTRATO || cane.stato == StatoCane.IN_ACCOPPIAMENTO || cane.stato == StatoCane.IN_ADDESTRAMENTO) { 
             adulti++
         }
     }

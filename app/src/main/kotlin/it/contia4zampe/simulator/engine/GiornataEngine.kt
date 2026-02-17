@@ -72,8 +72,23 @@ class GiornataEngine {
     private fun fineGiornata(stato: StatoGiornata) {
         stato.fase = FaseGiornata.FINE
         for (sg in stato.giocatori) {
+            val giocatore = sg.giocatore
+            
+            // 1. Dichiarazione accoppiamenti per la prossima giornata
             applicaDichiarazioneAccoppiamenti(sg)
-            applicaUpkeep(sg.giocatore)
+            
+            // 2. Pagamento costi di mantenimento
+            applicaUpkeep(giocatore)
+
+            // 3. NUOVO: Controllo Capienza (Vende cani in eccesso)
+            applicaControlloCapienza(giocatore)
+
+            // 4. Controllo Collasso finale (se dopo le vendite forzate è rimasto < 2 adulti)
+            for (riga in giocatore.plancia.righe) {
+                for (carta in riga) {
+                    gestisciCollassoCarta(giocatore, carta)
+                }
+            }
         }
     }
 
