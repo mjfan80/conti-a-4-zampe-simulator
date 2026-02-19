@@ -172,8 +172,8 @@ class PartitaEngine(private val giornataEngine: GiornataEngine = GiornataEngine(
             val casuale = (1..3).random()
             when (casuale) {
                 1 -> mazzo.add(CartaEvento("Mercato Favorevole", TipoEffettoEvento.MODIFICA_VENDITA, variazione = 1))
-                2 -> mazzo.add(CartaEvento("Upkeep Pesante", TipoEffettoEvento.MODIFICA_UPKEEP, variazione = 1))
-                3 -> mazzo.add(CartaEvento("Sussidi", TipoEffettoEvento.BONUS_RENDITA_INIZIO, variazione = 2))
+                2 -> mazzo.add(CartaEvento("Upkeep Pesante", TipoEffettoEvento.MODIFICA_UPKEEP_TOTALE, variazione = 1))
+                3 -> mazzo.add(CartaEvento("Sussidi", TipoEffettoEvento.BONUS_DOIN_INIZIO, variazione = 2))
             }
         }
         

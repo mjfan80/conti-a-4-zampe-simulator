@@ -15,10 +15,33 @@ class GiornataEngine {
 
     private fun inizioGiornata(stato: StatoGiornata) {
         stato.fase = FaseGiornata.INIZIO
+        val evento = stato.eventoAttivo
 
         for (sg in stato.giocatori) {
             val g = sg.giocatore
+            
+            // 1. Rendita Standard
             applicaRenditaNetta(g)
+            
+            // --- LOGICA EVENTO: Bonus Inizio ---
+            if (evento?.tipo == TipoEffettoEvento.BONUS_DOIN_INIZIO) {
+                g.doin += evento.variazione
+                println("LOG: G${g.id} riceve ${evento.variazione} doin dall'evento ${evento.nome}")
+            }
+
+            // --- LOGICA EVENTO: Rendita Cuccioli ---
+            if (evento?.tipo == TipoEffettoEvento.RENDITA_CUCCIOLI) {
+                var conteggioCuccioli = 0
+                for (carta in g.plancia.righe.flatten()) {
+                    for (cane in carta.cani) {
+                        if (cane.stato == StatoCane.CUCCIOLO) conteggioCuccioli++
+                    }
+                }
+                val renditaExtra = conteggioCuccioli * evento.variazione
+                g.doin += renditaExtra
+                if (renditaExtra > 0) println("LOG: G${g.id} rendita cuccioli: +$renditaExtra doin")
+            }
+
             applicaPopolamentoCarteNuove(g)
             applicaMaturazioneCuccioli(sg, stato.numero)
             applicaRisoluzioneAccoppiamenti(g, stato.numero, dado)
@@ -71,14 +94,15 @@ class GiornataEngine {
 
     private fun fineGiornata(stato: StatoGiornata) {
         stato.fase = FaseGiornata.FINE
+        val evento = stato.eventoAttivo
         for (sg in stato.giocatori) {
             val giocatore = sg.giocatore
             
             // 1. Dichiarazione accoppiamenti per la prossima giornata
-            applicaDichiarazioneAccoppiamenti(sg)
+            applicaDichiarazioneAccoppiamenti(sg, evento)
             
             // 2. Pagamento costi di mantenimento
-            applicaUpkeep(giocatore)
+            applicaUpkeep(giocatore, evento)
 
             // 3. NUOVO: Controllo Capienza (Vende cani in eccesso)
             applicaControlloCapienza(giocatore)

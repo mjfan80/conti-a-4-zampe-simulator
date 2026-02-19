@@ -21,7 +21,6 @@ fun eseguiAzioneVendita(
     pacchettiVendita: List<Pair<CartaRazza, Cane>>, 
     vuolePescareCarta: Boolean,
     evento: CartaEvento? = null // Aggiungiamo l'evento come parametro
-
 ): Boolean {
     var totaleRicavato = 0
     val carteCoinvolte = mutableSetOf<CartaRazza>()
