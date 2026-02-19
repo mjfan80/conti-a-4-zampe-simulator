@@ -5,6 +5,7 @@ import it.contia4zampe.simulator.engine.PartitaEngine
 import it.contia4zampe.simulator.engine.SimulationConfig
 import it.contia4zampe.simulator.report.CsvReportExporter
 import it.contia4zampe.simulator.report.SimulationReportAggregator
+import it.contia4zampe.simulator.player.*
 import java.io.File
 import java.time.Instant
 
@@ -19,7 +20,8 @@ fun main(args: Array<String>) {
     val config = SimulationConfig(
         numeroPartite = numeroPartite,
         numeroGiocatori = numeroGiocatori,
-        maxGiornateEvento = maxGiornate
+        maxGiornateEvento = maxGiornate,
+        profili = listOf(ProfiloCostruttore(), ProfiloAvventato(), ProfiloPrudenteBase())
     )
 
     val collector = InMemorySimulationCollector()
