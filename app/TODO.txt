@@ -1,3 +1,14 @@
 cose da fare ancora
 
 implmementare l'evebto "per entrare nella fase di chiusura serve un pass in più"
+
+
+Gestione ricarica mercato dopo vendita (opzionale).
+
+Evento "Ritmo di Giornata" (passaggi extra per chiusura).
+
+Implementazione Obiettivi Comuni (Punteggio finale).
+
+Logica perdita stato upgrade se non ci sono più addestrati sulla carta.
+
+finire i bonus delle carte e loro applicazione

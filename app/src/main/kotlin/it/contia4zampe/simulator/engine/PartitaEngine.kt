@@ -1,13 +1,9 @@
 package it.contia4zampe.simulator.engine
 
-import it.contia4zampe.simulator.model.Giocatore
-import it.contia4zampe.simulator.model.PlanciaGiocatore
-import it.contia4zampe.simulator.model.CartaEvento
-import it.contia4zampe.simulator.model.TipoEffettoEvento
+import it.contia4zampe.simulator.model.*
 import it.contia4zampe.simulator.player.PlayerProfile
 import it.contia4zampe.simulator.player.ProfiloPassivo
-import it.contia4zampe.simulator.rules.calcolaPuntiVittoriaBase
-import it.contia4zampe.simulator.rules.deveTerminarePartita
+import it.contia4zampe.simulator.rules.*
 
 class PartitaEngine(private val giornataEngine: GiornataEngine = GiornataEngine()) {
 
@@ -61,6 +57,12 @@ class PartitaEngine(private val giornataEngine: GiornataEngine = GiornataEngine(
                 giornataEngine.eseguiGiornata(statoPartita)
 
                 collector.onDayEnded(gameId, statoPartita.numero, snapshotGiocatori(statoPartita))
+
+                println("--- GIORNATA ${statoPartita.numero} ---")
+                for (sg in statoPartita.giocatori) {
+                    println("G${sg.giocatore.id}: ${sg.giocatore.doin} doin, ${sg.giocatore.debiti} debiti, ${sg.giocatore.plancia.slotOccupatiTotali()} carte")
+                }
+
 
                 if (deveTerminarePartita(statoPartita)) {
                     statoPartita.partitaFinita = true
@@ -130,25 +132,54 @@ class PartitaEngine(private val giornataEngine: GiornataEngine = GiornataEngine(
     }
 
     private fun creaStatoIniziale(config: SimulationConfig): StatoGiornata {
+        val mazzoRazze = creaMazzoRazzeBase()
         val profiliGiocatori = profiliPerGiocatori(config.numeroGiocatori, config.profili)
 
-        val statoGiocatori = (1..config.numeroGiocatori).map { id ->
+        // 1. Creazione dei giocatori e assegnazione mano iniziale (3 carte)
+        val statiGiocatori = mutableListOf<StatoGiocatoreGiornata>()
+        for (id in 1..config.numeroGiocatori) {
             val giocatore = Giocatore(
                 id = id,
                 doin = config.doinIniziali,
                 debiti = config.debitiIniziali,
                 plancia = PlanciaGiocatore(listOf(mutableListOf(), mutableListOf(), mutableListOf()))
             )
-            StatoGiocatoreGiornata(giocatore, profiliGiocatori[id - 1])
+            
+            // Mano iniziale di 3 carte
+            for (i in 0 until 3) {
+                if (mazzoRazze.isNotEmpty()) {
+                    giocatore.mano.add(mazzoRazze.removeAt(0))
+                }
+            }
+            
+            statiGiocatori.add(StatoGiocatoreGiornata(giocatore, profiliGiocatori[id - 1]))
         }
 
-        return StatoGiornata(
+        // 2. Popolamento iniziale del mercato comune (5 carte)
+        val mercato = mutableListOf<CartaRazza>()
+        for (i in 0 until 5) {
+            if (mazzoRazze.isNotEmpty()) {
+                mercato.add(mazzoRazze.removeAt(0))
+            }
+        }
+
+        // 3. Creazione dello stato temporaneo per gestire l'accelerazione
+        val stato = StatoGiornata(
             numero = 1,
-            giocatori = statoGiocatori,
+            giocatori = statiGiocatori,
             sogliaPassaggi = config.sogliaPassaggi(),
             maxGiornateEvento = config.maxGiornateEvento,
-            mazzoEventi = preparaMazzoEventi(config.maxGiornateEvento) // CHIAMATA ALLA FUNZIONE
+            mercatoComune = mercato,
+            mazzoCarteRazza = mazzoRazze,
+            mazzoEventi = creaMazzoEventiBaseCompleto()
         )
+
+        // 4. Applicazione Accelerazione Iniziale (dal Mercato)
+        for (sg in stato.giocatori) {
+            applicaAccelerazioneIniziale(sg, stato)
+        }
+
+        return stato
     }
 
     private fun profiliPerGiocatori(numeroGiocatori: Int, profili: List<PlayerProfile>): List<PlayerProfile> {
@@ -179,5 +210,49 @@ class PartitaEngine(private val giornataEngine: GiornataEngine = GiornataEngine(
         
         mazzo.shuffle() // Mischiamo il mazzo
         return mazzo
+    }
+
+    private fun applicaAccelerazioneIniziale(sg: StatoGiocatoreGiornata, stato: StatoGiornata) {
+        val g = sg.giocatore
+        var cartaScelta: CartaRazza? = null
+
+        // 1. Cerchiamo nel mercato una carta che costa <= 5
+        for (i in 0 until stato.mercatoComune.size) {
+            val carta = stato.mercatoComune[i]
+            if (carta.costo <= 5) {
+                cartaScelta = carta
+                break
+            }
+        }
+
+        if (cartaScelta != null) {
+            // 2. Cerchiamo una riga che possa ospitare questa taglia
+            var rigaDestinazione = -1
+            for (r in 0 until g.plancia.righe.size) {
+                if (g.plancia.puoOspitareTaglia(r, cartaScelta.taglia) && g.plancia.haSpazioInRiga(r)) {
+                    rigaDestinazione = r
+                    break
+                }
+            }
+
+            // 3. Se troviamo posto, la giochiamo (senza cani, Phase 2 li aggiungerà)
+            if (rigaDestinazione != -1) {
+                stato.mercatoComune.remove(cartaScelta)
+                g.plancia.righe[rigaDestinazione].add(cartaScelta)
+                
+                // Ricarica mercato
+                if (stato.mazzoCarteRazza.isNotEmpty()) {
+                    stato.mercatoComune.add(stato.mazzoCarteRazza.removeAt(0))
+                }
+                println("SETUP: G${g.id} accelera con ${cartaScelta.nome} in riga $rigaDestinazione")
+            } else {
+                // Caso limite: carta trovata ma nessun posto in plancia (difficile al setup)
+                g.doin += 5
+            }
+        } else {
+            // Nessuna carta economica nel mercato
+            g.doin += 5
+            println("SETUP: G${g.id} riceve 5 doin extra")
+        }
     }
 }
