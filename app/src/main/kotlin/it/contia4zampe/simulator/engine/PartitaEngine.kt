@@ -63,6 +63,12 @@ class PartitaEngine(private val giornataEngine: GiornataEngine = GiornataEngine(
                     println("G${sg.giocatore.id}: ${sg.giocatore.doin} doin, ${sg.giocatore.debiti} debiti, ${sg.giocatore.plancia.slotOccupatiTotali()} carte")
                 }
 
+                println("--- FINE GIORNATA ${statoPartita.numero} ---")
+                for (sg in statoPartita.giocatori) {
+                    val puntiAttuali = calcolaPuntiVittoriaBase(sg.giocatore)
+                    println("G${sg.giocatore.id}: ${sg.giocatore.doin} doin, ${sg.giocatore.debiti} deb, ${sg.giocatore.plancia.slotOccupatiTotali()} carte, PV: $puntiAttuali")
+                }
+
 
                 if (deveTerminarePartita(statoPartita)) {
                     statoPartita.partitaFinita = true

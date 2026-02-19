@@ -67,6 +67,9 @@ class GiornataEngine {
                 // 1. Il profilo decide (Principale, Blocco Secondarie o Passa)
                 val scelta = sg.profilo.decidiAzione(stato, sg)
 
+                val nomeAzione = scelta::class.simpleName
+                println("TURNO: G${sg.giocatore.id} decide di fare: $nomeAzione")
+
                 // 2. Esecuzione
                 eseguiAzione(scelta, sg, stato)
 
@@ -77,6 +80,7 @@ class GiornataEngine {
                 // Se l'azione ha il flag chiudeTurno (Passa o Vendita con Pesca), 
                 // il giocatore diventa CLOSED per il resto della giornata.
                 if (scelta.chiudeTurno) {
+                    println("LOG: G${sg.giocatore.id} ha passato.")
                     passaGiocatore(stato, sg)
                 }
 
