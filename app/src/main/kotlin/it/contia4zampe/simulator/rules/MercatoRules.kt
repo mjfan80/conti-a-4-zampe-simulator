@@ -3,8 +3,9 @@ package it.contia4zampe.simulator.rules
 import it.contia4zampe.simulator.engine.StatoGiornata
 
 fun eseguiDraftMercato(stato: StatoGiornata) {
+    val evento = stato.eventoAttivo
     val nGiocatori = stato.giocatori.size
-    // Ciclo imperativo classico
+
     for (i in 0 until nGiocatori) {
         val currentIndex = (stato.indicePrimoGiocatore + i) % nGiocatori
         val sg = stato.giocatori[currentIndex]
@@ -15,9 +16,17 @@ fun eseguiDraftMercato(stato: StatoGiornata) {
             stato.mercatoComune.remove(scelta)
             sg.giocatore.mano.add(scelta)
             
+            // --- LOGICA PENALITÀ EVENTO ---
+            if (evento?.penalitàScartoMercato == true && sg.giocatore.mano.size>1) { // Evitiamo di scartare ha solo la carta pescata in mano    
+                // Il giocatore deve scartare una carta (per ora la prima disponibile, o chiediamo al profilo)
+                val cartaDaScartare = sg.giocatore.mano.first() 
+                sg.giocatore.mano.remove(cartaDaScartare)
+                println("LOG: G${sg.giocatore.id} scarta ${cartaDaScartare.nome} per effetto evento.")
+            }
+            // ------------------------------
+
             if (stato.mazzoCarteRazza.isNotEmpty()) {
-                val nuova = stato.mazzoCarteRazza.removeAt(0)
-                stato.mercatoComune.add(nuova)
+                stato.mercatoComune.add(stato.mazzoCarteRazza.removeAt(0))
             }
         }
     }

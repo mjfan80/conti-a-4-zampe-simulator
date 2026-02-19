@@ -1,6 +1,7 @@
 package it.contia4zampe.simulator.engine
 
 import it.contia4zampe.simulator.model.CartaRazza
+import it.contia4zampe.simulator.model.CartaEvento
 
 data class StatoGiornata(
     var numero: Int,
@@ -15,5 +16,8 @@ data class StatoGiornata(
     val mercatoComune: MutableList<CartaRazza> = mutableListOf(),
     var indicePrimoGiocatore: Int = 0, // Chi inizia questo giorno
     val mazzoCarteRazza: MutableList<CartaRazza> = mutableListOf(), // Da dove peschiamo
-    val maxGiornateEvento: Int = 15
+    val maxGiornateEvento: Int = 15,
+
+    var eventoAttivo: CartaEvento? = null, // L'evento in corso
+    val mazzoEventi: MutableList<CartaEvento> = mutableListOf() // Il mazzo da cui pescare
 )

@@ -4,7 +4,13 @@ import it.contia4zampe.simulator.model.*
 import it.contia4zampe.simulator.engine.Dado
 import it.contia4zampe.simulator.engine.StatoGiocatoreGiornata
 
-fun applicaDichiarazioneAccoppiamenti(statoGiocatore: StatoGiocatoreGiornata) {
+fun applicaDichiarazioneAccoppiamenti(statoGiocatore: StatoGiocatoreGiornata, evento: CartaEvento? = null) {
+    // CONTROLLO EVENTO: Se l'evento blocca gli accoppiamenti, usciamo subito
+    if (evento?.tipo == TipoEffettoEvento.BLOCCO_ACCOPPIAMENTO) {
+        println("LOG: Accoppiamenti bloccati dall'evento ${evento.nome}")
+        return
+    }
+
     val giocatore = statoGiocatore.giocatore
     val profilo = statoGiocatore.profilo
 

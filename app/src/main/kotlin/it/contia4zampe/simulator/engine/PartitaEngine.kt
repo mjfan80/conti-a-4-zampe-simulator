@@ -2,14 +2,14 @@ package it.contia4zampe.simulator.engine
 
 import it.contia4zampe.simulator.model.Giocatore
 import it.contia4zampe.simulator.model.PlanciaGiocatore
+import it.contia4zampe.simulator.model.CartaEvento
+import it.contia4zampe.simulator.model.TipoEffettoEvento
 import it.contia4zampe.simulator.player.PlayerProfile
 import it.contia4zampe.simulator.player.ProfiloPassivo
 import it.contia4zampe.simulator.rules.calcolaPuntiVittoriaBase
 import it.contia4zampe.simulator.rules.deveTerminarePartita
 
-class PartitaEngine(
-    private val giornataEngine: GiornataEngine = GiornataEngine()
-) {
+class PartitaEngine(private val giornataEngine: GiornataEngine = GiornataEngine()) {
 
     /**
      * API legacy: esegue una singola partita demo senza restituire risultati strutturati.
@@ -41,6 +41,21 @@ class PartitaEngine(
             collector.onGameStarted(gameId, statoPartita)
 
             while (!statoPartita.partitaFinita) {
+
+                // --- LOGICA EVENTI (Aggiungi questo blocco) ---
+                // Se siamo oltre il primo giorno, peschiamo un evento
+                if (statoPartita.numero > 1) {
+                    if (statoPartita.mazzoEventi.isNotEmpty()) {
+                        statoPartita.eventoAttivo = statoPartita.mazzoEventi.removeAt(0)
+                        println("LOG: Giorno ${statoPartita.numero} - Evento Attivo: ${statoPartita.eventoAttivo?.nome}")
+                    } else {
+                        statoPartita.eventoAttivo = null // Mazzo finito
+                    }
+                } else {
+                    statoPartita.eventoAttivo = null // Giorno 1: nessun evento
+                }
+                // ----------------------------------------------
+
                 collector.onDayStarted(gameId, statoPartita.numero, snapshotGiocatori(statoPartita))
 
                 giornataEngine.eseguiGiornata(statoPartita)
@@ -131,7 +146,8 @@ class PartitaEngine(
             numero = 1,
             giocatori = statoGiocatori,
             sogliaPassaggi = config.sogliaPassaggi(),
-            maxGiornateEvento = config.maxGiornateEvento
+            maxGiornateEvento = config.maxGiornateEvento,
+            mazzoEventi = preparaMazzoEventi(config.maxGiornateEvento) // CHIAMATA ALLA FUNZIONE
         )
     }
 
@@ -145,5 +161,23 @@ class PartitaEngine(
             risultato.add(profili[i % profili.size])
         }
         return risultato
+    }
+
+    private fun preparaMazzoEventi(dimensione: Int): MutableList<CartaEvento> {
+        val mazzo = mutableListOf<CartaEvento>()
+        
+        // Esempio: riempiamo il mazzo con alcuni eventi tipo
+        // In futuro qui leggeremo un file o un database
+        for (i in 0 until dimensione) {
+            val casuale = (1..3).random()
+            when (casuale) {
+                1 -> mazzo.add(CartaEvento("Mercato Favorevole", TipoEffettoEvento.MODIFICA_VENDITA, variazione = 1))
+                2 -> mazzo.add(CartaEvento("Upkeep Pesante", TipoEffettoEvento.MODIFICA_UPKEEP_TOTALE, variazione = 1))
+                3 -> mazzo.add(CartaEvento("Sussidi", TipoEffettoEvento.BONUS_DOIN_INIZIO, variazione = 2))
+            }
+        }
+        
+        mazzo.shuffle() // Mischiamo il mazzo
+        return mazzo
     }
 }
