@@ -19,7 +19,9 @@ fun calcolaValoreCane(carta: CartaRazza, cane: Cane): Int {
 fun eseguiAzioneVendita(
     giocatore: Giocatore, 
     pacchettiVendita: List<Pair<CartaRazza, Cane>>, 
-    vuolePescareCarta: Boolean
+    vuolePescareCarta: Boolean,
+    evento: CartaEvento? = null // Aggiungiamo l'evento come parametro
+
 ): Boolean {
     var totaleRicavato = 0
     val carteCoinvolte = mutableSetOf<CartaRazza>()
@@ -28,8 +30,15 @@ fun eseguiAzioneVendita(
     for (coppia in pacchettiVendita) {
         val carta = coppia.first
         val cane = coppia.second
+
+        var valoreCane = calcolaValoreCane(carta, cane)
         
-        totaleRicavato += calcolaValoreCane(carta, cane)
+        // APPLICAZIONE EVENTO: Se c'è un bonus vendite (es. +1 per capo)
+        if (evento?.tipo == TipoEffettoEvento.MODIFICA_VENDITA) {
+            valoreCane += evento.variazione
+        }
+        
+        totaleRicavato += valoreCane
         carta.cani.remove(cane)
         carteCoinvolte.add(carta)
     }
