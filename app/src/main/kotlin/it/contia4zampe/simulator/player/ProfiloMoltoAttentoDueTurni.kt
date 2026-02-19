@@ -27,7 +27,8 @@ class ProfiloMoltoAttentoDueTurni(
         for (carta in giocatore.mano) {
             if (giocatore.doin < carta.costo) continue
 
-            val doinResidui = giocatore.doin - carta.costo
+            var doinResidui = giocatore.doin - carta.costo 
+            doinResidui -=10 // margine di 10 doin per sicurezza dopo l'acquisto
             if (doinResidui < upkeepCorrente) continue
 
             for (indiceRiga in giocatore.plancia.righe.indices) {
@@ -50,13 +51,6 @@ class ProfiloMoltoAttentoDueTurni(
         }
 
         return AzioneGiocatore.Passa
-    }
-
-    override fun decidiGestioneCucciolo(
-        statoGiocatore: StatoGiocatoreGiornata,
-        cucciolo: Cane
-    ): SceltaCucciolo {
-        return SceltaCucciolo.VENDI
     }
 
     override fun scegliCartaDalMercato(

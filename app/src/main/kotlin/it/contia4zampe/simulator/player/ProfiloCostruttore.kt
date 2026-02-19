@@ -1,74 +1,59 @@
 package it.contia4zampe.simulator.player
 
-import it.contia4zampe.simulator.engine.StatoGiornata
-import it.contia4zampe.simulator.engine.StatoGiocatoreGiornata
-import it.contia4zampe.simulator.model.Cane
-import it.contia4zampe.simulator.model.SceltaCucciolo
-import it.contia4zampe.simulator.model.CartaRazza
-import it.contia4zampe.simulator.rules.puòPiazzareInRiga // Importiamo la regola che abbiamo scritto
+import it.contia4zampe.simulator.engine.*
+import it.contia4zampe.simulator.model.*
+import it.contia4zampe.simulator.rules.calcolaUpkeep
+import it.contia4zampe.simulator.rules.puòPiazzareInRiga
 
 class ProfiloCostruttore : PlayerProfile {
 
-    override fun decidiAzione(
-        statoGiornata: StatoGiornata,
-        statoGiocatore: StatoGiocatoreGiornata
-    ): AzioneGiocatore {
-        val giocatore = statoGiocatore.giocatore
-        val mano = giocatore.mano
+    override fun decidiAzione(stato: StatoGiornata, sg: StatoGiocatoreGiornata): AzioneGiocatore {
+        val g = sg.giocatore
+        val nCaniAttuali = g.plancia.righe.flatten().flatMap { it.cani }.size
+        
+        // 1. Se ho debiti e ho soldi, la priorità è pagare il debito (Azione Secondaria)
+        if (g.debiti > 0 && g.doin >= 2) {
+            return AzioneGiocatore.BloccoAzioniSecondarie(listOf(AzioneSecondaria.PagaDebito))
+        }
 
-        // 1. Ciclo classico sulla mano (stile Java)
-        for (i in 0 until mano.size) {
-            val carta = mano[i]
-
-            // 2. Verifichiamo se abbiamo i soldi per questa carta
-            if (giocatore.doin >= carta.costo) {
-                
-                // 3. Cerchiamo una riga valida dove piazzarla
-                for (indiceRiga in 0 until giocatore.plancia.righe.size) {
-                    
-                    // Usiamo la regola di posizionamento che abbiamo definito in GiocaCartaRules
-                    if (puòPiazzareInRiga(giocatore.plancia, carta, indiceRiga)) {
-                        val riga = giocatore.plancia.righe[indiceRiga]
-                        
-                        // 4. Verifichiamo se c'è spazio fisico (es. max 4 slot per riga)
-                        if (riga.size < giocatore.plancia.capacitaRiga(indiceRiga)) {
-                            // ABBIAMO TROVATO UNA COMBINAZIONE VALIDA!
-                            // Restituiamo l'azione con tutti i parametri richiesti
-                            return AzioneGiocatore.GiocaCartaRazza(
-                                carta = carta,
-                                rigaDestinazione = indiceRiga,
-                                slotDestinazione = riga.size // Lo mettiamo nel primo slot libero
-                            )
-                        }
+        // 2. Analisi acquisti
+        for (carta in g.mano) {
+            val costoCarta = carta.costo
+            // Calcolo cautelativo: Upkeep attuale + 2 (per la nuova carta) + 2 (margine sicurezza)
+            val riservaNecessaria = nCaniAttuali + 2 + 2 
+            
+            if (g.doin >= (costoCarta + riservaNecessaria) + 5) { // Aggiungo un ulteriore margine di 5 doin per sicurezza
+                for (r in 0 until g.plancia.righe.size) {
+                    if (g.plancia.puoOspitareTaglia(r, carta.taglia) && g.plancia.haSpazioInRiga(r)) {
+                        return AzioneGiocatore.GiocaCartaRazza(carta, r, g.plancia.righe[r].size)
                     }
                 }
             }
         }
 
-        // 5. Se il ciclo finisce e non abbiamo trovato nulla di giocabile (o niente soldi o niente spazio)
-        // il giocatore decide di passare.
-        return AzioneGiocatore.Passa
+        // 3. Se non posso comprare e non ho debiti, ma rischio di non pagare l'upkeep stasera: VENDO
+        if (g.doin < nCaniAttuali && nCaniAttuali > 2) {
+            val vendita = trovaCaneSacrificabile(g)
+            if (vendita != null) return AzioneGiocatore.VendiCani(listOf(vendita))
+        }
+
+        return AzioneGiocatore.Passa // Chiude la giornata per questo giocatore
     }
 
-    override fun decidiGestioneCucciolo(
-        statoGiocatore: StatoGiocatoreGiornata,
-        cucciolo: Cane
-    ): SceltaCucciolo {
+    override fun vuoleDichiarareAccoppiamento(sg: StatoGiocatoreGiornata, carta: CartaRazza): Boolean {
+        val g = sg.giocatore
+        val nCani = g.plancia.righe.flatten().flatMap { it.cani }.size
+        // Regola di buon senso: accoppia solo se hai almeno 5 doin extra oltre all'upkeep
+        return g.doin > (nCani + 5) && g.debiti <2
+    }
+
+    // Faccio l'override perché io voglio tenerli i cuccioli!
+    override fun decidiGestioneCucciolo(sg: StatoGiocatoreGiornata, cucciolo: Cane): SceltaCucciolo {
+        val g = sg.giocatore
+        // Se però sono disperato, vendo anche io
+        if (g.debiti > 2) return SceltaCucciolo.VENDI
+        
         return SceltaCucciolo.TRASFORMA_IN_ADULTO
     }
-
-    override fun scegliCartaDalMercato(
-        giocatore: StatoGiocatoreGiornata,
-        mercato: List<CartaRazza>
-    ): CartaRazza {
-        return mercato.first()
-    }
-
-    override fun vuoleDichiarareAccoppiamento(
-        statoGiocatore: StatoGiocatoreGiornata,
-        carta: CartaRazza
-    ): Boolean {
-        // Profilo costruttore: cerca crescita e quindi prova sempre ad accoppiare
-        return true
-    }
+    override fun scegliCartaDalMercato(sg: StatoGiocatoreGiornata, m: List<CartaRazza>) = m.first()
 }
