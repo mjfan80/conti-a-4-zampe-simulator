@@ -29,6 +29,8 @@ data class CartaRazza(
     val cani: MutableList<Cane> = mutableListOf(),
     var upgrade: Boolean = false,
     var collassata: Boolean = false,
+    var appenaGiocata: Boolean = true, // Di default è true quando viene creata/pescata
+
     
     // NUOVO: La carta dichiara il suo effetto
     val effettoInizio: EffettoInizioGiornata = EffettoInizioGiornata.NESSUNO,
