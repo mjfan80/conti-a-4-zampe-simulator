@@ -138,6 +138,8 @@ class PartitaEngine(private val giornataEngine: GiornataEngine = GiornataEngine(
     }
 
     private fun creaStatoIniziale(config: SimulationConfig): StatoGiornata {
+            println("DEBUG: Inizio creaStatoIniziale per ${config.numeroGiocatori} giocatori") // AGGIUNGI QUESTO
+
         val mazzoRazze = creaMazzoRazzeBase()
         val profiliGiocatori = profiliPerGiocatori(config.numeroGiocatori, config.profili)
 

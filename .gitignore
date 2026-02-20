@@ -24,3 +24,4 @@ Thumbs.db
 .settings/
 app/.settings/
 repository_context.txt
+app/reports/
