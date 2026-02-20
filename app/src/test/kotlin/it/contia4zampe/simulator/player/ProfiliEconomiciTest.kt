@@ -78,13 +78,29 @@ class ProfiliEconomiciTest {
     }
 
     @Test
-    fun `profilo avventato dichiara sempre accoppiamento`() {
+    fun `profilo avventato dichiara accoppiamento in scenario sostenibile`() {
         val carta = CartaRazza("A", 2, 1, 1, 2, Taglia.MEDIA)
+        carta.cani.add(Cane.crea(StatoCane.ADULTO))
+        carta.cani.add(Cane.crea(StatoCane.ADULTO))
         val profilo = ProfiloAvventato()
         val giocatore = Giocatore(1, 5, 0, PlanciaGiocatore(listOf(mutableListOf(carta), mutableListOf(), mutableListOf())))
         val stato = StatoGiocatoreGiornata(giocatore, profilo)
 
         assertTrue(profilo.vuoleDichiarareAccoppiamento(stato, carta))
+    }
+
+    @Test
+    fun `profilo avventato evita accoppiamento se produce troppi debiti`() {
+        val carta = CartaRazza("A", 2, 1, 1, 2, Taglia.MEDIA)
+        carta.cani.add(Cane.crea(StatoCane.ADULTO))
+        carta.cani.add(Cane.crea(StatoCane.ADULTO))
+        repeat(10) { carta.cani.add(Cane.crea(StatoCane.CUCCIOLO, 1)) }
+
+        val profilo = ProfiloAvventato()
+        val giocatore = Giocatore(1, 0, 0, PlanciaGiocatore(listOf(mutableListOf(carta), mutableListOf(), mutableListOf())))
+        val stato = StatoGiocatoreGiornata(giocatore, profilo)
+
+        assertFalse(profilo.vuoleDichiarareAccoppiamento(stato, carta))
     }
 
     @Test

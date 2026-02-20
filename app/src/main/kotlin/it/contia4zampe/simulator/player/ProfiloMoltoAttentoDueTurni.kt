@@ -7,8 +7,9 @@ import it.contia4zampe.simulator.model.CartaRazza
 import it.contia4zampe.simulator.model.SceltaCucciolo
 import it.contia4zampe.simulator.player.decision.ValutatoreAzioneEconomica
 import it.contia4zampe.simulator.player.decision.SelettoreMiniPlancia
+import it.contia4zampe.simulator.player.decision.PolicyAccoppiamento
+import it.contia4zampe.simulator.player.decision.PolicyAccoppiamentoConfig
 import it.contia4zampe.simulator.rules.calcolaUpkeep
-import it.contia4zampe.simulator.rules.stimaEconomiaDueGiornateConAccoppiamento
 
 class ProfiloMoltoAttentoDueTurni(
     private val sogliaDebitiMassima: Int = 1
@@ -61,28 +62,15 @@ class ProfiloMoltoAttentoDueTurni(
         statoGiocatore: StatoGiocatoreGiornata,
         carta: CartaRazza
     ): Boolean {
-        val esitoSenza = stimaEconomiaDueGiornateConAccoppiamento(
+        return PolicyAccoppiamento.dovrebbeDichiarare(
             statoGiocatore = statoGiocatore,
-            cartaTarget = carta,
-            dichiaraAccoppiamento = false
+            carta = carta,
+            config = PolicyAccoppiamentoConfig(
+                sogliaDebitiMassima = sogliaDebitiMassima,
+                margineDoinMinimoPostUpkeep = 4,
+                consentiPeggioramentoDebiti = false,
+                tolleranzaRiduzioneDoin = 3
+            )
         )
-
-        val esitoCon = stimaEconomiaDueGiornateConAccoppiamento(
-            statoGiocatore = statoGiocatore,
-            cartaTarget = carta,
-            dichiaraAccoppiamento = true
-        )
-
-        if (esitoCon.debitiFinali > sogliaDebitiMassima) {
-            return false
-        }
-
-        // Ulteriore vincolo prudente: l'accoppiamento non deve peggiorare la posizione debitoria
-        if (esitoCon.debitiFinali > esitoSenza.debitiFinali) {
-            return false
-        }
-
-        // Se rimane entro soglia debiti, accetta anche riduzioni moderate di liquidità
-        return true
     }
 }

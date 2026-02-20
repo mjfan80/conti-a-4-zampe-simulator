@@ -4,6 +4,8 @@ import it.contia4zampe.simulator.engine.*
 import it.contia4zampe.simulator.model.*
 import it.contia4zampe.simulator.player.decision.ValutatoreAzioneEconomica
 import it.contia4zampe.simulator.player.decision.SelettoreMiniPlancia
+import it.contia4zampe.simulator.player.decision.PolicyAccoppiamento
+import it.contia4zampe.simulator.player.decision.PolicyAccoppiamentoConfig
 import it.contia4zampe.simulator.rules.calcolaUpkeep
 
 class ProfiloPrudenteBase : PlayerProfile {
@@ -43,10 +45,16 @@ class ProfiloPrudenteBase : PlayerProfile {
     }
 
     override fun vuoleDichiarareAccoppiamento(sg: StatoGiocatoreGiornata, carta: CartaRazza): Boolean {
-        val g = sg.giocatore
-        val nCani = g.plancia.righe.flatten().flatMap { it.cani }.size
-        // Regola di buon senso: accoppia solo se hai almeno 5 doin extra oltre all'upkeep
-        return g.doin > (nCani + 5) && g.debiti == 0
+        return PolicyAccoppiamento.dovrebbeDichiarare(
+            statoGiocatore = sg,
+            carta = carta,
+            config = PolicyAccoppiamentoConfig(
+                sogliaDebitiMassima = 0,
+                margineDoinMinimoPostUpkeep = 5,
+                consentiPeggioramentoDebiti = false,
+                tolleranzaRiduzioneDoin = 2
+            )
+        )
     }
     
 
