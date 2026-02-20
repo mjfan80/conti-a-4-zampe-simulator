@@ -12,9 +12,9 @@ import java.time.Instant
 fun main(args: Array<String>) {
     val options = parseArgs(args)
 
-    val numeroPartite = options["partite"]?.toIntOrNull() ?: 10
-    val numeroGiocatori = options["giocatori"]?.toIntOrNull() ?: 2
-    val maxGiornate = options["max-giornate"]?.toIntOrNull() ?: 15
+    val numeroPartite = options["partite"]?.toIntOrNull() ?: 1
+    val numeroGiocatori = options["giocatori"]?.toIntOrNull() ?: 3
+    val maxGiornate = options["max-giornate"]?.toIntOrNull() ?: 10
     val outputDir = File(options["out-dir"] ?: "reports")
 
     val config = SimulationConfig(

@@ -79,7 +79,7 @@ class GiornataEngine {
                 
                 // Se l'azione ha il flag chiudeTurno (Passa o Vendita con Pesca), 
                 // il giocatore diventa CLOSED per il resto della giornata.
-                if (scelta.chiudeTurno) {
+                if (scelta.chiudeGiornata) {
                     println("LOG: G${sg.giocatore.id} ha passato.")
                     passaGiocatore(stato, sg)
                 }

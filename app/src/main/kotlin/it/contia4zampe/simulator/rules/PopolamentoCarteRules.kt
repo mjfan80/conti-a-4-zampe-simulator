@@ -6,9 +6,10 @@ fun applicaPopolamentoCarteNuove(
     giocatore: Giocatore) {
     giocatore.plancia.righe
         .flatten()
-        .filter { carta -> carta.cani.isEmpty() }
+        .filter { carta -> carta.cani.isEmpty() && !carta.collassata}
         .forEach { carta ->
             carta.cani.add(Cane.crea(StatoCane.ADULTO))
             carta.cani.add(Cane.crea(StatoCane.ADULTO))
+            carta.appenaGiocata = false 
         }
 }

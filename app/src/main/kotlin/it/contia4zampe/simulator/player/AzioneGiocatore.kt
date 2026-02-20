@@ -11,7 +11,7 @@ enum class TipoAzione {
 
 sealed class AzioneGiocatore {
     abstract val tipo: TipoAzione
-    abstract val chiudeTurno: Boolean
+    abstract val chiudeGiornata: Boolean
 
     // --- AZIONI PRINCIPALI ---
 
@@ -21,7 +21,7 @@ sealed class AzioneGiocatore {
         val slotDestinazione: Int = 0
     ) : AzioneGiocatore() {
         override val tipo = TipoAzione.PRINCIPALE
-        override val chiudeTurno = false // Di norma non chiude il giorno, solo il turno
+        override val chiudeGiornata = false // Di norma non chiude il giorno, solo il turno
     }
 
     data class VendiCani(
@@ -30,7 +30,7 @@ sealed class AzioneGiocatore {
     ) : AzioneGiocatore() {
         override val tipo = TipoAzione.PRINCIPALE
         // Se pesca l'extra, il regolamento dice che diventa CLOSED (chiude il giorno per lui)
-        override val chiudeTurno = pescaCartaInveceDi5Doin 
+        override val chiudeGiornata = pescaCartaInveceDi5Doin 
     }
 
     // --- AZIONI SECONDARIE (Wrapper) ---
@@ -40,14 +40,14 @@ sealed class AzioneGiocatore {
         val azioni: List<AzioneSecondaria> // Può contenerne 1 o 2
     ) : AzioneGiocatore() {
         override val tipo = TipoAzione.SECONDARIA
-        override val chiudeTurno = false
+        override val chiudeGiornata = false
     }
 
     // --- PASSA ---
 
     object Passa : AzioneGiocatore() {
         override val tipo = TipoAzione.PASSA
-        override val chiudeTurno = true
+        override val chiudeGiornata = true
     }
 }
 

@@ -138,6 +138,8 @@ class PartitaEngine(private val giornataEngine: GiornataEngine = GiornataEngine(
     }
 
     private fun creaStatoIniziale(config: SimulationConfig): StatoGiornata {
+            println("DEBUG: Inizio creaStatoIniziale per ${config.numeroGiocatori} giocatori") // AGGIUNGI QUESTO
+
         val mazzoRazze = creaMazzoRazzeBase()
         val profiliGiocatori = profiliPerGiocatori(config.numeroGiocatori, config.profili)
 
@@ -160,6 +162,8 @@ class PartitaEngine(private val giornataEngine: GiornataEngine = GiornataEngine(
             
             statiGiocatori.add(StatoGiocatoreGiornata(giocatore, profiliGiocatori[id - 1]))
         }
+
+        statiGiocatori.forEach { println("SETUP: G${it.giocatore.id} ha profilo ${it.profilo.javaClass.simpleName}") }    
 
         // 2. Popolamento iniziale del mercato comune (5 carte)
         val mercato = mutableListOf<CartaRazza>()

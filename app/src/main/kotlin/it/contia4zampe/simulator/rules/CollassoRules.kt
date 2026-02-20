@@ -7,7 +7,7 @@ import it.contia4zampe.simulator.model.*
  * Se collassa, vende automaticamente i cani rimanenti e disattiva la carta.
  */
 fun gestisciCollassoCarta(giocatore: Giocatore, carta: CartaRazza): Int {
-    if (carta.collassata) return 0 // Già collassata, non fare nulla
+    if (carta.collassata || carta.appenaGiocata) return 0 // Già collassata, non fare nulla
     
     // Contiamo gli adulti (normali o addestrati)
     var adulti = 0

@@ -25,4 +25,84 @@ git switch main  (per tornare al main)
 git pull
 git switch -c feature/login (per creare nuova feature)
 
+🔹 feature/
+
+Per nuove funzionalità
+
+Esempi:
+
+feature/login
+feature/carta-evento-giornata
+feature/export-csv
+
+
+È il più usato in assoluto.
+
+🔹 fix/ oppure bugfix/
+
+Per correggere bug
+
+fix/null-pointer-login
+bugfix/calcolo-punteggio
+
+
+fix/ è più diffuso nei progetti moderni.
+
+🔹 hotfix/
+
+Per correzioni urgenti su produzione
+
+hotfix/crash-home
+
+
+Si usa quando serve patch rapida.
+
+🔹 refactor/
+
+Per modifiche strutturali senza cambiare comportamento
+
+refactor/engine-simulazione
+
+🔹 test/
+
+Per aggiunta o miglioramento test
+
+test/capienza-rules
+
+
+Non tutti lo usano, ma è molto chiaro semanticamente.
+
+🔹 chore/
+
+Per attività tecniche non funzionali (config, build, dipendenze)
+
+chore/aggiorna-gradle
+chore/pulisce-gitignore
+
+
+Molto usato insieme alle Conventional Commits.
+
+Convenzione più comune oggi
+
+Se vuoi stare nello standard più diffuso:
+
+feature/...
+fix/...
+refactor/...
+chore/...
+
+
+È pulito, leggibile, professionale.
+
+Piccolo dettaglio stilistico
+
+Meglio:
+
+feature/carta-evento-giornata
+
+
+Non:
+
+feature/CartaEventoGiornata
+
 
