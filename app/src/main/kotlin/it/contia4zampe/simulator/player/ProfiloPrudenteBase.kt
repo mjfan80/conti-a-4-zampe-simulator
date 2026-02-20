@@ -2,8 +2,8 @@ package it.contia4zampe.simulator.player
 
 import it.contia4zampe.simulator.engine.*
 import it.contia4zampe.simulator.model.*
+import it.contia4zampe.simulator.player.decision.ValutatoreAzioneEconomica
 import it.contia4zampe.simulator.rules.calcolaUpkeep
-import it.contia4zampe.simulator.rules.puòPiazzareInRiga
 
 class ProfiloPrudenteBase : PlayerProfile {
 
@@ -16,18 +16,17 @@ class ProfiloPrudenteBase : PlayerProfile {
             return AzioneGiocatore.BloccoAzioniSecondarie(listOf(AzioneSecondaria.PagaDebito))
         }
 
-        // 2. ACQUISTO SUPER PROTETTO: Deve restargli il DOPPIO dell'upkeep in cassa
+        val azioniPossibili = mutableListOf<AzioneGiocatore>(AzioneGiocatore.Passa)
         for (carta in g.mano) {
-            if (g.doin >= (carta.costo + (upkeep * 2) + 5)) {
-                for (r in 0 until g.plancia.righe.size) {
-                    if (g.plancia.puoOspitareTaglia(r, carta.taglia) && g.plancia.haSpazioInRiga(r)) {
-                        return AzioneGiocatore.GiocaCartaRazza(carta, r, g.plancia.righe[r].size)
-                    }
+            for (r in 0 until g.plancia.righe.size) {
+                if (g.plancia.puoOspitareTaglia(r, carta.taglia) && g.plancia.haSpazioInRiga(r)) {
+                    azioniPossibili.add(AzioneGiocatore.GiocaCartaRazza(carta, r, g.plancia.righe[r].size))
                 }
             }
         }
 
-        return AzioneGiocatore.Passa
+        // Prudente: accetta solo giocate con score chiaramente positivo.
+        return ValutatoreAzioneEconomica.scegliMigliore(stato, sg, azioniPossibili, sogliaScore = (upkeep * 1.5) + 5)
     }
 
     override fun vuoleDichiarareAccoppiamento(sg: StatoGiocatoreGiornata, carta: CartaRazza): Boolean {

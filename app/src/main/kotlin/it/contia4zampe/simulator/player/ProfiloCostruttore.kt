@@ -2,8 +2,7 @@ package it.contia4zampe.simulator.player
 
 import it.contia4zampe.simulator.engine.*
 import it.contia4zampe.simulator.model.*
-import it.contia4zampe.simulator.rules.calcolaUpkeep
-import it.contia4zampe.simulator.rules.puòPiazzareInRiga
+import it.contia4zampe.simulator.player.decision.ValutatoreAzioneEconomica
 
 class ProfiloCostruttore : PlayerProfile {
 
@@ -16,19 +15,18 @@ class ProfiloCostruttore : PlayerProfile {
             return AzioneGiocatore.BloccoAzioniSecondarie(listOf(AzioneSecondaria.PagaDebito))
         }
 
-        // 2. Analisi acquisti
+        val azioniPossibili = mutableListOf<AzioneGiocatore>(AzioneGiocatore.Passa)
         for (carta in g.mano) {
-            val costoCarta = carta.costo
-            // Calcolo cautelativo: Upkeep attuale + 2 (per la nuova carta) + 2 (margine sicurezza)
-            val riservaNecessaria = nCaniAttuali + 2 + 2 
-            
-            if (g.doin >= (costoCarta + riservaNecessaria) + 5) { // Aggiungo un ulteriore margine di 5 doin per sicurezza
-                for (r in 0 until g.plancia.righe.size) {
-                    if (g.plancia.puoOspitareTaglia(r, carta.taglia) && g.plancia.haSpazioInRiga(r)) {
-                        return AzioneGiocatore.GiocaCartaRazza(carta, r, g.plancia.righe[r].size)
-                    }
+            for (r in 0 until g.plancia.righe.size) {
+                if (g.plancia.puoOspitareTaglia(r, carta.taglia) && g.plancia.haSpazioInRiga(r)) {
+                    azioniPossibili.add(AzioneGiocatore.GiocaCartaRazza(carta, r, g.plancia.righe[r].size))
                 }
             }
+        }
+
+        val miglioreAzione = ValutatoreAzioneEconomica.scegliMigliore(stato, sg, azioniPossibili, sogliaScore = 2.0)
+        if (miglioreAzione is AzioneGiocatore.GiocaCartaRazza) {
+            return miglioreAzione
         }
 
         // 3. Se non posso comprare e non ho debiti, ma rischio di non pagare l'upkeep stasera: VENDO
