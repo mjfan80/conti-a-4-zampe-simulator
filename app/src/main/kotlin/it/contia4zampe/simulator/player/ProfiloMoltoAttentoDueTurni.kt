@@ -6,6 +6,8 @@ import it.contia4zampe.simulator.model.Cane
 import it.contia4zampe.simulator.model.CartaRazza
 import it.contia4zampe.simulator.model.SceltaCucciolo
 import it.contia4zampe.simulator.player.decision.ValutatoreAzioneEconomica
+import it.contia4zampe.simulator.player.decision.SelettoreMiniPlancia
+import it.contia4zampe.simulator.rules.calcolaUpkeep
 import it.contia4zampe.simulator.rules.stimaEconomiaDueGiornateConAccoppiamento
 
 class ProfiloMoltoAttentoDueTurni(
@@ -32,7 +34,20 @@ class ProfiloMoltoAttentoDueTurni(
             }
         }
 
-        return ValutatoreAzioneEconomica.scegliMigliore(statoGiornata, statoGiocatore, azioniPossibili, sogliaScore = 12.0)
+        val sceltaPrincipale = ValutatoreAzioneEconomica.scegliMigliore(statoGiornata, statoGiocatore, azioniPossibili, sogliaScore = 12.0)
+        if (sceltaPrincipale !is AzioneGiocatore.Passa) {
+            return sceltaPrincipale
+        }
+
+        val upkeep = calcolaUpkeep(giocatore, statoGiornata.eventoAttivo).costoTotale
+        val acquistoMiniPlancia = SelettoreMiniPlancia.suggerisciAcquisto(
+            stato = statoGiornata,
+            sg = statoGiocatore,
+            marginePostAcquisto = upkeep + 5
+        )
+
+        return acquistoMiniPlancia?.let { AzioneGiocatore.BloccoAzioniSecondarie(listOf(it)) }
+            ?: AzioneGiocatore.Passa
     }
 
     override fun scegliCartaDalMercato(

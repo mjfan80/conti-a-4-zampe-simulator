@@ -3,6 +3,7 @@ package it.contia4zampe.simulator.player
 import it.contia4zampe.simulator.engine.*
 import it.contia4zampe.simulator.model.*
 import it.contia4zampe.simulator.player.decision.ValutatoreAzioneEconomica
+import it.contia4zampe.simulator.player.decision.SelettoreMiniPlancia
 import it.contia4zampe.simulator.rules.calcolaUpkeep
 
 class ProfiloPrudenteBase : PlayerProfile {
@@ -26,7 +27,19 @@ class ProfiloPrudenteBase : PlayerProfile {
         }
 
         // Prudente: accetta solo giocate con score chiaramente positivo.
-        return ValutatoreAzioneEconomica.scegliMigliore(stato, sg, azioniPossibili, sogliaScore = (upkeep * 1.5) + 5)
+        val sceltaPrincipale = ValutatoreAzioneEconomica.scegliMigliore(stato, sg, azioniPossibili, sogliaScore = (upkeep * 1.5) + 5)
+        if (sceltaPrincipale !is AzioneGiocatore.Passa) {
+            return sceltaPrincipale
+        }
+
+        val acquistoMiniPlancia = SelettoreMiniPlancia.suggerisciAcquisto(
+            stato = stato,
+            sg = sg,
+            marginePostAcquisto = upkeep + 3
+        )
+
+        return acquistoMiniPlancia?.let { AzioneGiocatore.BloccoAzioniSecondarie(listOf(it)) }
+            ?: AzioneGiocatore.Passa
     }
 
     override fun vuoleDichiarareAccoppiamento(sg: StatoGiocatoreGiornata, carta: CartaRazza): Boolean {

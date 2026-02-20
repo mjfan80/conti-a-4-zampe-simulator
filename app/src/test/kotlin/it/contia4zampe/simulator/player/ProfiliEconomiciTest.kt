@@ -132,4 +132,61 @@ class ProfiliEconomiciTest {
         }
     }
 
+    @Test
+    fun `profilo costruttore compra mini plancia su coppia legittima quando passa`() {
+        val giocatore = Giocatore(
+            id = 1,
+            doin = 18,
+            debiti = 0,
+            plancia = PlanciaGiocatore(
+                listOf(
+                    mutableListOf(
+                        CartaRazza("A", 3, 1, 1, 2, Taglia.MEDIA),
+                        CartaRazza("B", 3, 1, 1, 2, Taglia.MEDIA)
+                    ),
+                    mutableListOf(),
+                    mutableListOf()
+                )
+            ),
+            mano = mutableListOf()
+        )
+
+        val profilo = ProfiloCostruttore()
+        val statoGiocatore = StatoGiocatoreGiornata(giocatore, profilo)
+        val stato = StatoGiornata(numero = 1, giocatori = listOf(statoGiocatore), sogliaPassaggi = 1)
+
+        val azione = profilo.decidiAzione(stato, statoGiocatore)
+
+        assertTrue(azione is AzioneGiocatore.BloccoAzioniSecondarie)
+        val subAzione = (azione as AzioneGiocatore.BloccoAzioniSecondarie).azioni.first()
+        assertTrue(subAzione is AzioneSecondaria.AcquistaMiniPlancia)
+        val acquisto = subAzione as AzioneSecondaria.AcquistaMiniPlancia
+        assertTrue(giocatore.plancia.coppiaAddestramentoValida(acquisto.indiceRiga, acquisto.slotSinistro))
+    }
+
+    @Test
+    fun `profilo prudente non compra mini plancia senza margine economico`() {
+        val giocatore = Giocatore(
+            id = 1,
+            doin = 6,
+            debiti = 0,
+            plancia = PlanciaGiocatore(
+                listOf(
+                    mutableListOf(CartaRazza("A", 3, 1, 1, 2, Taglia.MEDIA, cani = mutableListOf(Cane.crea(StatoCane.ADULTO)))),
+                    mutableListOf(),
+                    mutableListOf()
+                )
+            ),
+            mano = mutableListOf()
+        )
+
+        val profilo = ProfiloPrudenteBase()
+        val statoGiocatore = StatoGiocatoreGiornata(giocatore, profilo)
+        val stato = StatoGiornata(numero = 1, giocatori = listOf(statoGiocatore), sogliaPassaggi = 1)
+
+        val azione = profilo.decidiAzione(stato, statoGiocatore)
+
+        assertTrue(azione is AzioneGiocatore.Passa)
+    }
+
 }

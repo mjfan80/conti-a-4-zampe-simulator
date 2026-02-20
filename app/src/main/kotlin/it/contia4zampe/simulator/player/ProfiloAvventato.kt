@@ -3,6 +3,8 @@ package it.contia4zampe.simulator.player
 import it.contia4zampe.simulator.engine.*
 import it.contia4zampe.simulator.model.*
 import it.contia4zampe.simulator.player.decision.ValutatoreAzioneEconomica
+import it.contia4zampe.simulator.player.decision.SelettoreMiniPlancia
+import it.contia4zampe.simulator.rules.calcolaUpkeep
 
 class ProfiloAvventato : PlayerProfile {
 
@@ -26,6 +28,16 @@ class ProfiloAvventato : PlayerProfile {
         if (g.debiti >= 3) {
             val vendita = trovaCaneSacrificabile(g)
             if (vendita != null) return AzioneGiocatore.VendiCani(listOf(vendita))
+        }
+
+        val upkeep = calcolaUpkeep(g, stato.eventoAttivo).costoTotale
+        val acquistoMiniPlancia = SelettoreMiniPlancia.suggerisciAcquisto(
+            stato = stato,
+            sg = sg,
+            marginePostAcquisto = (upkeep - 1).coerceAtLeast(0)
+        )
+        if (acquistoMiniPlancia != null) {
+            return AzioneGiocatore.BloccoAzioniSecondarie(listOf(acquistoMiniPlancia))
         }
 
         return AzioneGiocatore.Passa
