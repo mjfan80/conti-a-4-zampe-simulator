@@ -5,8 +5,7 @@ import it.contia4zampe.simulator.engine.StatoGiocatoreGiornata
 import it.contia4zampe.simulator.model.Cane
 import it.contia4zampe.simulator.model.CartaRazza
 import it.contia4zampe.simulator.model.SceltaCucciolo
-import it.contia4zampe.simulator.rules.calcolaUpkeep
-import it.contia4zampe.simulator.rules.puòPiazzareInRiga
+import it.contia4zampe.simulator.player.decision.ValutatoreAzioneEconomica
 import it.contia4zampe.simulator.rules.stimaEconomiaDueGiornateConAccoppiamento
 
 class ProfiloMoltoAttentoDueTurni(
@@ -18,39 +17,22 @@ class ProfiloMoltoAttentoDueTurni(
         statoGiocatore: StatoGiocatoreGiornata
     ): AzioneGiocatore {
         val giocatore = statoGiocatore.giocatore
-        val upkeepCorrente = calcolaUpkeep(giocatore).costoTotale
-
-        var miglioreCarta: CartaRazza? = null
-        var miglioreRiga = -1
-        var migliorCosto = Int.MAX_VALUE
-
+        val azioniPossibili = mutableListOf<AzioneGiocatore>(AzioneGiocatore.Passa)
         for (carta in giocatore.mano) {
-            if (giocatore.doin < carta.costo) continue
-
-            var doinResidui = giocatore.doin - carta.costo 
-            doinResidui -=10 // margine di 10 doin per sicurezza dopo l'acquisto
-            if (doinResidui < upkeepCorrente) continue
-
             for (indiceRiga in giocatore.plancia.righe.indices) {
-                if (puòPiazzareInRiga(giocatore.plancia, carta, indiceRiga) && giocatore.plancia.haSpazioInRiga(indiceRiga)) {
-                    if (carta.costo < migliorCosto) {
-                        miglioreCarta = carta
-                        miglioreRiga = indiceRiga
-                        migliorCosto = carta.costo
-                    }
+                if (giocatore.plancia.puoOspitareTaglia(indiceRiga, carta.taglia) && giocatore.plancia.haSpazioInRiga(indiceRiga)) {
+                    azioniPossibili.add(
+                        AzioneGiocatore.GiocaCartaRazza(
+                            carta = carta,
+                            rigaDestinazione = indiceRiga,
+                            slotDestinazione = giocatore.plancia.righe[indiceRiga].size
+                        )
+                    )
                 }
             }
         }
 
-        if (miglioreCarta != null) {
-            return AzioneGiocatore.GiocaCartaRazza(
-                carta = miglioreCarta,
-                rigaDestinazione = miglioreRiga,
-                slotDestinazione = giocatore.plancia.righe[miglioreRiga].size
-            )
-        }
-
-        return AzioneGiocatore.Passa
+        return ValutatoreAzioneEconomica.scegliMigliore(statoGiornata, statoGiocatore, azioniPossibili, sogliaScore = 12.0)
     }
 
     override fun scegliCartaDalMercato(

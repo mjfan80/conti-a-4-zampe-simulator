@@ -72,10 +72,7 @@ class ProfiliEconomiciTest {
             sogliaPassaggi = 1
         )
 
-        val azione = profilo.decidiAzione(
-            statoGiornata = stato,
-            statoGiocatore = statoGiocatore
-        )
+        val azione = profilo.decidiAzione(stato, statoGiocatore)
 
         assertTrue(azione is AzioneGiocatore.Passa)
     }
@@ -84,9 +81,55 @@ class ProfiliEconomiciTest {
     fun `profilo avventato dichiara sempre accoppiamento`() {
         val carta = CartaRazza("A", 2, 1, 1, 2, Taglia.MEDIA)
         val profilo = ProfiloAvventato()
-        val giocatore = Giocatore(1, 0, 0, PlanciaGiocatore(listOf(mutableListOf(carta), mutableListOf(), mutableListOf())))
+        val giocatore = Giocatore(1, 5, 0, PlanciaGiocatore(listOf(mutableListOf(carta), mutableListOf(), mutableListOf())))
         val stato = StatoGiocatoreGiornata(giocatore, profilo)
 
         assertTrue(profilo.vuoleDichiarareAccoppiamento(stato, carta))
     }
+
+    @Test
+    fun `i profili economici passano quando la carta genera rischio upkeep e debito`() {
+        val cartaRischiosa = CartaRazza("Carta Rischiosa", 4, 1, 2, 3, Taglia.MEDIA)
+        val profili = listOf(
+            ProfiloPrudenteBase(),
+            ProfiloMoltoAttentoDueTurni(),
+            ProfiloCostruttore(),
+            ProfiloAvventato()
+        )
+
+        profili.forEach { profilo ->
+            val giocatore = Giocatore(
+                id = 1,
+                doin = 6,
+                debiti = 0,
+                plancia = PlanciaGiocatore(listOf(mutableListOf(), mutableListOf(), mutableListOf())),
+                mano = mutableListOf(cartaRischiosa.copy())
+            )
+
+            repeat(5) {
+                giocatore.plancia.righe[0].add(
+                    CartaRazza(
+                        nome = "Base$it",
+                        costo = 1,
+                        rendita = 1,
+                        puntiBase = 1,
+                        puntiUpgrade = 1,
+                        taglia = Taglia.MEDIA,
+                        cani = mutableListOf(Cane.crea(StatoCane.ADULTO))
+                    )
+                )
+            }
+
+            val statoGiocatore = StatoGiocatoreGiornata(giocatore, profilo)
+            val stato = StatoGiornata(
+                numero = 1,
+                giocatori = listOf(statoGiocatore),
+                sogliaPassaggi = 1
+            )
+
+            val azione = profilo.decidiAzione(stato, statoGiocatore)
+            assertTrue(azione is AzioneGiocatore.Passa, "${profilo::class.simpleName} doveva passare in scenario rischioso")
+        }
+    }
+
 }

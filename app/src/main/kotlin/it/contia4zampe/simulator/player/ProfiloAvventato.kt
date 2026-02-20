@@ -2,23 +2,24 @@ package it.contia4zampe.simulator.player
 
 import it.contia4zampe.simulator.engine.*
 import it.contia4zampe.simulator.model.*
-import it.contia4zampe.simulator.rules.puòPiazzareInRiga
+import it.contia4zampe.simulator.player.decision.ValutatoreAzioneEconomica
 
 class ProfiloAvventato : PlayerProfile {
 
     override fun decidiAzione(stato: StatoGiornata, sg: StatoGiocatoreGiornata): AzioneGiocatore {
         val g = sg.giocatore
-        val nCaniAttuali = g.plancia.righe.flatten().flatMap { it.cani }.size
-
-        // Compra se gli restano i soldi giusti per l'upkeep dei cani che avrà stasera
+        val azioniPossibili = mutableListOf<AzioneGiocatore>(AzioneGiocatore.Passa)
         for (carta in g.mano) {
-            if (g.doin >= (carta.costo + nCaniAttuali + 2)) {
-                for (r in 0 until g.plancia.righe.size) {
-                    if (g.plancia.puoOspitareTaglia(r, carta.taglia) && g.plancia.haSpazioInRiga(r)) {
-                        return AzioneGiocatore.GiocaCartaRazza(carta, r, g.plancia.righe[r].size)
-                    }
+            for (r in 0 until g.plancia.righe.size) {
+                if (g.plancia.puoOspitareTaglia(r, carta.taglia) && g.plancia.haSpazioInRiga(r)) {
+                    azioniPossibili.add(AzioneGiocatore.GiocaCartaRazza(carta, r, g.plancia.righe[r].size))
                 }
             }
+        }
+
+        val miglioreAzione = ValutatoreAzioneEconomica.scegliMigliore(stato, sg, azioniPossibili, sogliaScore = -8.0)
+        if (miglioreAzione is AzioneGiocatore.GiocaCartaRazza) {
+            return miglioreAzione
         }
 
         // Vende solo se ha già dei debiti pesanti (3+)
