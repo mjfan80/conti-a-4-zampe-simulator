@@ -54,7 +54,7 @@ class PartitaEngine(private val giornataEngine: GiornataEngine = GiornataEngine(
 
                 collector.onDayStarted(gameId, statoPartita.numero, snapshotGiocatori(statoPartita))
 
-                giornataEngine.eseguiGiornata(statoPartita)
+                giornataEngine.eseguiGiornata(statoPartita, collector, gameId)
 
                 collector.onDayEnded(gameId, statoPartita.numero, snapshotGiocatori(statoPartita))
 

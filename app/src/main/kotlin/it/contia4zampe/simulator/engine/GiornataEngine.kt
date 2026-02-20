@@ -7,9 +7,13 @@ class GiornataEngine {
 
     private val dado: Dado = DadoStandard()
 
-    fun eseguiGiornata(stato: StatoGiornata) {
+    fun eseguiGiornata(
+        stato: StatoGiornata,
+        collector: SimulationCollector = NoOpSimulationCollector,
+        gameId: Int = 0
+    ) {
         inizioGiornata(stato)
-        faseTurni(stato)
+        faseTurni(stato, collector, gameId)
         fineGiornata(stato)
     }
 
@@ -54,7 +58,7 @@ class GiornataEngine {
         eseguiDraftMercato(stato)
     }
 
-    private fun faseTurni(stato: StatoGiornata) {
+    private fun faseTurni(stato: StatoGiornata, collector: SimulationCollector, gameId: Int) {
         stato.fase = FaseGiornata.TURNI
 
         while (true) {
@@ -66,6 +70,16 @@ class GiornataEngine {
 
                 // 1. Il profilo decide (Principale, Blocco Secondarie o Passa)
                 val scelta = sg.profilo.decidiAzione(stato, sg)
+                collector.onDecisionTaken(
+                    DecisionEvent(
+                        gameId = gameId,
+                        dayNumber = stato.numero,
+                        playerId = sg.giocatore.id,
+                        profileName = sg.profilo::class.simpleName ?: "UnknownProfile",
+                        actionType = scelta.tipo.name,
+                        actionName = scelta::class.simpleName ?: "UnknownAction"
+                    )
+                )
 
                 val nomeAzione = scelta::class.simpleName
                 println("TURNO: G${sg.giocatore.id} decide di fare: $nomeAzione")

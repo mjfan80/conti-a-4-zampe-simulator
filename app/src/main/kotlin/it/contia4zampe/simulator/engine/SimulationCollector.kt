@@ -9,6 +9,8 @@ interface SimulationCollector {
 
     fun onDayEnded(gameId: Int, dayNumber: Int, snapshots: List<PlayerSnapshot>) {}
 
+    fun onDecisionTaken(event: DecisionEvent) {}
+
     fun onGameEnded(result: PartitaResult) {}
 
     fun onSimulationEnded(result: SimulationResult) {}
@@ -23,6 +25,7 @@ class InMemorySimulationCollector : SimulationCollector {
     val dayStartSnapshots: MutableList<Triple<Int, Int, List<PlayerSnapshot>>> = mutableListOf()
     val dayEndSnapshots: MutableList<Triple<Int, Int, List<PlayerSnapshot>>> = mutableListOf()
     val gameResults: MutableList<PartitaResult> = mutableListOf()
+    val decisionEvents: MutableList<DecisionEvent> = mutableListOf()
 
     override fun onDayStarted(gameId: Int, dayNumber: Int, snapshots: List<PlayerSnapshot>) {
         dayStartSnapshots.add(Triple(gameId, dayNumber, snapshots))
@@ -34,5 +37,9 @@ class InMemorySimulationCollector : SimulationCollector {
 
     override fun onGameEnded(result: PartitaResult) {
         gameResults.add(result)
+    }
+
+    override fun onDecisionTaken(event: DecisionEvent) {
+        decisionEvents.add(event)
     }
 }

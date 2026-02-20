@@ -43,6 +43,7 @@ class PartitaEngineSimulationTest {
         assertEquals(1, collector.gameResults.size)
         assertFalse(collector.dayStartSnapshots.isEmpty())
         assertFalse(collector.dayEndSnapshots.isEmpty())
+        assertFalse(collector.decisionEvents.isEmpty())
 
         val collectedGameResult = collector.gameResults.first()
         val returnedGameResult = result.partite.first()

@@ -21,6 +21,16 @@ data class WinnerCardStat(
     val neverPlayedByWinners: Boolean
 )
 
+data class ProfileDecisionReportRow(
+    val profileName: String,
+    val azioniPrincipali: Int,
+    val azioniSecondarie: Int,
+    val passaggi: Int,
+    val acquistiMiniPlancia: Int,
+    val addestramenti: Int,
+    val pagamentiDebito: Int
+)
+
 data class SimulationSummaryReport(
     val partiteTotali: Int,
     val giornate: RangeStats,
@@ -28,5 +38,6 @@ data class SimulationSummaryReport(
     val mediaPuntiTuttiGiocatori: Double,
     val perPlayer: List<PlayerAggregateReportRow>,
     val top5CarteVincitori: List<WinnerCardStat>,
-    val bottomCarteVincitori: List<WinnerCardStat>
+    val bottomCarteVincitori: List<WinnerCardStat>,
+    val profileDecisions: List<ProfileDecisionReportRow>
 )

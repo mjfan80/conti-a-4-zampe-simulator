@@ -9,7 +9,8 @@ class CsvReportExporter {
         val summaryFile: File,
         val gamesFile: File,
         val playersFile: File,
-        val winnerCardsFile: File
+        val winnerCardsFile: File,
+        val profileDecisionsFile: File
     )
 
     fun export(
@@ -26,13 +27,15 @@ class CsvReportExporter {
         val gamesFile = File(outputDir, "games.csv")
         val playersFile = File(outputDir, "players.csv")
         val winnerCardsFile = File(outputDir, "winner_cards.csv")
+        val profileDecisionsFile = File(outputDir, "profile_decisions.csv")
 
         writeSummary(summaryFile, report, runId)
         writeGames(gamesFile, games, runId)
         writePlayers(playersFile, games, report, runId)
         writeWinnerCards(winnerCardsFile, report, runId)
+        writeProfileDecisions(profileDecisionsFile, report, runId)
 
-        return ExportedFiles(summaryFile, gamesFile, playersFile, winnerCardsFile)
+        return ExportedFiles(summaryFile, gamesFile, playersFile, winnerCardsFile, profileDecisionsFile)
     }
 
     private fun writeSummary(file: File, report: SimulationSummaryReport, runId: String) {
@@ -135,6 +138,28 @@ class CsvReportExporter {
                             if (card.cardName in topSet) "1" else "0",
                             if (card.cardName in bottomSet) "1" else "0",
                             if (card.neverPlayedByWinners) "1" else "0"
+                        ).joinToString(",")
+                    )
+                }
+            }
+        )
+    }
+
+    private fun writeProfileDecisions(file: File, report: SimulationSummaryReport, runId: String) {
+        file.writeText(
+            buildString {
+                appendLine("run_id,profile_name,azioni_principali,azioni_secondarie,passaggi,acquisti_mini_plancia,addestramenti,pagamenti_debito")
+                report.profileDecisions.forEach { row ->
+                    appendLine(
+                        listOf(
+                            runId,
+                            quoted(row.profileName),
+                            row.azioniPrincipali.toString(),
+                            row.azioniSecondarie.toString(),
+                            row.passaggi.toString(),
+                            row.acquistiMiniPlancia.toString(),
+                            row.addestramenti.toString(),
+                            row.pagamentiDebito.toString()
                         ).joinToString(",")
                     )
                 }

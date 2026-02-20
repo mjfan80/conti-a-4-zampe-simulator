@@ -2,13 +2,15 @@ package it.contia4zampe.simulator.report
 
 import it.contia4zampe.simulator.engine.PlayerSnapshot
 import it.contia4zampe.simulator.engine.SimulationResult
+import it.contia4zampe.simulator.engine.DecisionEvent
 import kotlin.math.round
 
 class SimulationReportAggregator {
 
     fun aggregate(
         simulationResult: SimulationResult,
-        daySnapshots: List<Triple<Int, Int, List<PlayerSnapshot>>>
+        daySnapshots: List<Triple<Int, Int, List<PlayerSnapshot>>>,
+        decisionEvents: List<DecisionEvent> = emptyList()
     ): SimulationSummaryReport {
         val partite = simulationResult.partite
         if (partite.isEmpty()) {
@@ -19,7 +21,8 @@ class SimulationReportAggregator {
                 mediaPuntiTuttiGiocatori = 0.0,
                 perPlayer = emptyList(),
                 top5CarteVincitori = emptyList(),
-                bottomCarteVincitori = emptyList()
+                bottomCarteVincitori = emptyList(),
+                profileDecisions = emptyList()
             )
         }
 
@@ -97,6 +100,21 @@ class SimulationReportAggregator {
             (nonZeroLeast + zeroCards).distinctBy { it.cardName }
         }
 
+        val profileDecisionRows = decisionEvents
+            .groupBy { it.profileName }
+            .map { (profileName, events) ->
+                ProfileDecisionReportRow(
+                    profileName = profileName,
+                    azioniPrincipali = events.count { it.actionType == "PRINCIPALE" },
+                    azioniSecondarie = events.count { it.actionType == "SECONDARIA" },
+                    passaggi = events.count { it.actionType == "PASSA" },
+                    acquistiMiniPlancia = events.count { it.actionName.contains("AcquistaMiniPlancia") },
+                    addestramenti = events.count { it.actionName.contains("AddestraCane") },
+                    pagamentiDebito = events.count { it.actionName.contains("PagaDebito") }
+                )
+            }
+            .sortedBy { it.profileName }
+
         return SimulationSummaryReport(
             partiteTotali = partite.size,
             giornate = rangeStats(giornateValues),
@@ -104,7 +122,8 @@ class SimulationReportAggregator {
             mediaPuntiTuttiGiocatori = round2(allPoints.average()),
             perPlayer = perPlayerRows,
             top5CarteVincitori = top5,
-            bottomCarteVincitori = bottom
+            bottomCarteVincitori = bottom,
+            profileDecisions = profileDecisionRows
         )
     }
 
