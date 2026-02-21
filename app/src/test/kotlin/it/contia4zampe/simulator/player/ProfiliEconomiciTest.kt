@@ -150,16 +150,20 @@ class ProfiliEconomiciTest {
 
     @Test
     fun `profilo costruttore compra mini plancia su coppia legittima quando passa`() {
+        val cartaA = CartaRazza("A", 3, 1, 1, 2, Taglia.MEDIA)
+        val cartaB = CartaRazza("B", 3, 1, 1, 2, Taglia.MEDIA)
+        repeat(2) {
+            cartaA.cani.add(Cane.crea(StatoCane.ADULTO))
+            cartaB.cani.add(Cane.crea(StatoCane.ADULTO))
+        }
+
         val giocatore = Giocatore(
             id = 1,
             doin = 18,
             debiti = 0,
             plancia = PlanciaGiocatore(
                 listOf(
-                    mutableListOf(
-                        CartaRazza("A", 3, 1, 1, 2, Taglia.MEDIA),
-                        CartaRazza("B", 3, 1, 1, 2, Taglia.MEDIA)
-                    ),
+                    mutableListOf(cartaA, cartaB),
                     mutableListOf(),
                     mutableListOf()
                 )
@@ -203,6 +207,69 @@ class ProfiliEconomiciTest {
         val azione = profilo.decidiAzione(stato, statoGiocatore)
 
         assertTrue(azione is AzioneGiocatore.Passa)
+    }
+
+    @Test
+    fun `profili non comprano mini plancia con una sola carta coperta anche con molti doin`() {
+        val profili = listOf(
+            ProfiloPrudenteBase(),
+            ProfiloMoltoAttentoDueTurni(),
+            ProfiloCostruttore(),
+            ProfiloAvventato()
+        )
+
+        profili.forEach { profilo ->
+            val giocatore = Giocatore(
+                id = 1,
+                doin = 20,
+                debiti = 0,
+                plancia = PlanciaGiocatore(
+                    listOf(
+                        mutableListOf(CartaRazza("A", 3, 1, 1, 2, Taglia.MEDIA, cani = mutableListOf(Cane.crea(StatoCane.ADULTO), Cane.crea(StatoCane.ADULTO)))),
+                        mutableListOf(),
+                        mutableListOf()
+                    )
+                ),
+                mano = mutableListOf()
+            )
+
+            val statoGiocatore = StatoGiocatoreGiornata(giocatore, profilo)
+            val stato = StatoGiornata(numero = 1, giocatori = listOf(statoGiocatore), sogliaPassaggi = 1)
+            val azione = profilo.decidiAzione(stato, statoGiocatore)
+
+            assertFalse(
+                azione is AzioneGiocatore.BloccoAzioniSecondarie &&
+                    (azione.azioni.firstOrNull() is AzioneSecondaria.AcquistaMiniPlancia),
+                "${profilo::class.simpleName} non deve comprare mini-plancia con una sola carta coperta"
+            )
+        }
+    }
+
+    @Test
+    fun `profili giocano una carta in early game quando la giocata e sostenibile`() {
+        val profili = listOf(
+            ProfiloPrudenteBase(),
+            ProfiloMoltoAttentoDueTurni(),
+            ProfiloCostruttore(),
+            ProfiloAvventato()
+        )
+
+        profili.forEach { profilo ->
+            val cartaGiocabile = CartaRazza("Economica", 3, 2, 2, 3, Taglia.MEDIA)
+            val giocatore = Giocatore(
+                id = 1,
+                doin = 15,
+                debiti = 0,
+                plancia = PlanciaGiocatore(listOf(mutableListOf(), mutableListOf(), mutableListOf())),
+                mano = mutableListOf(cartaGiocabile)
+            )
+
+            val statoGiocatore = StatoGiocatoreGiornata(giocatore, profilo)
+            val stato = StatoGiornata(numero = 1, giocatori = listOf(statoGiocatore), sogliaPassaggi = 1)
+            val azione = profilo.decidiAzione(stato, statoGiocatore)
+
+            assertTrue(azione is AzioneGiocatore.GiocaCartaRazza, "${profilo::class.simpleName} dovrebbe giocare carta in early game sostenibile")
+        }
     }
 
 }

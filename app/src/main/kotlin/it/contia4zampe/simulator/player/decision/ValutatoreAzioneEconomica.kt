@@ -69,11 +69,22 @@ object ValutatoreAzioneEconomica {
 
         val debitiAttesi = debitiCorrente + debitiSuccessivo
 
+        val carteInPlanciaPrima = giocatore.plancia.slotOccupatiTotali()
+        val bonusEspansioneEarly = if (azione is AzioneGiocatore.GiocaCartaRazza && carteInPlanciaPrima <= 2) 16.0 else 0.0
+        val bonusStrategicoCarta = when (azione) {
+            is AzioneGiocatore.GiocaCartaRazza -> (azione.carta.rendita * 4.0) + (azione.carta.puntiBase * 1.5)
+            else -> 0.0
+        }
+        val malusPassaEarly = if (azione is AzioneGiocatore.Passa && giocatore.mano.isNotEmpty() && carteInPlanciaPrima <= 2) 6.0 else 0.0
+
         val score =
-            (doinResiduiPostCosto * 1.0) +
-                (margineUpkeepCorrente * 2.5) +
-                (margineUpkeepSuccessivo * 2.0) -
-                (debitiAttesi * 12.0)
+            (doinResiduiPostCosto * 0.7) +
+                (margineUpkeepCorrente * 2.0) +
+                (margineUpkeepSuccessivo * 1.6) -
+                (debitiAttesi * 8.0) +
+                bonusEspansioneEarly +
+                bonusStrategicoCarta -
+                malusPassaEarly
 
         return EsitoValutazioneEconomica(
             azione = azione,

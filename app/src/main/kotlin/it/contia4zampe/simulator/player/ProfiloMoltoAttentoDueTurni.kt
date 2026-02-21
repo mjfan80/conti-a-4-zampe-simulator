@@ -7,6 +7,7 @@ import it.contia4zampe.simulator.model.CartaRazza
 import it.contia4zampe.simulator.model.SceltaCucciolo
 import it.contia4zampe.simulator.player.decision.ValutatoreAzioneEconomica
 import it.contia4zampe.simulator.player.decision.SelettoreMiniPlancia
+import it.contia4zampe.simulator.player.decision.ConfigSelettoreMiniPlancia
 import it.contia4zampe.simulator.player.decision.PolicyAccoppiamento
 import it.contia4zampe.simulator.player.decision.PolicyAccoppiamentoConfig
 import it.contia4zampe.simulator.rules.calcolaUpkeep
@@ -35,7 +36,7 @@ class ProfiloMoltoAttentoDueTurni(
             }
         }
 
-        val sceltaPrincipale = ValutatoreAzioneEconomica.scegliMigliore(statoGiornata, statoGiocatore, azioniPossibili, sogliaScore = 12.0)
+        val sceltaPrincipale = ValutatoreAzioneEconomica.scegliMigliore(statoGiornata, statoGiocatore, azioniPossibili, sogliaScore = 2.5)
         if (sceltaPrincipale !is AzioneGiocatore.Passa) {
             return sceltaPrincipale
         }
@@ -44,7 +45,8 @@ class ProfiloMoltoAttentoDueTurni(
         val acquistoMiniPlancia = SelettoreMiniPlancia.suggerisciAcquisto(
             stato = statoGiornata,
             sg = statoGiocatore,
-            marginePostAcquisto = upkeep + 5
+            marginePostAcquisto = upkeep + 5,
+            config = ConfigSelettoreMiniPlancia(carteMinimeCoperte = 2, adultiMinimiSullaCoppia = 4, scoreMinimoPosizione = 8)
         )
 
         return acquistoMiniPlancia?.let { AzioneGiocatore.BloccoAzioniSecondarie(listOf(it)) }

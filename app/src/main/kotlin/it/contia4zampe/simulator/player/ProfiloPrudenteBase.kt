@@ -4,6 +4,7 @@ import it.contia4zampe.simulator.engine.*
 import it.contia4zampe.simulator.model.*
 import it.contia4zampe.simulator.player.decision.ValutatoreAzioneEconomica
 import it.contia4zampe.simulator.player.decision.SelettoreMiniPlancia
+import it.contia4zampe.simulator.player.decision.ConfigSelettoreMiniPlancia
 import it.contia4zampe.simulator.player.decision.PolicyAccoppiamento
 import it.contia4zampe.simulator.player.decision.PolicyAccoppiamentoConfig
 import it.contia4zampe.simulator.rules.calcolaUpkeep
@@ -29,7 +30,7 @@ class ProfiloPrudenteBase : PlayerProfile {
         }
 
         // Prudente: accetta solo giocate con score chiaramente positivo.
-        val sceltaPrincipale = ValutatoreAzioneEconomica.scegliMigliore(stato, sg, azioniPossibili, sogliaScore = (upkeep * 1.5) + 5)
+        val sceltaPrincipale = ValutatoreAzioneEconomica.scegliMigliore(stato, sg, azioniPossibili, sogliaScore = -2.0)
         if (sceltaPrincipale !is AzioneGiocatore.Passa) {
             return sceltaPrincipale
         }
@@ -37,7 +38,8 @@ class ProfiloPrudenteBase : PlayerProfile {
         val acquistoMiniPlancia = SelettoreMiniPlancia.suggerisciAcquisto(
             stato = stato,
             sg = sg,
-            marginePostAcquisto = upkeep + 3
+            marginePostAcquisto = upkeep + 3,
+            config = ConfigSelettoreMiniPlancia(carteMinimeCoperte = 2, adultiMinimiSullaCoppia = 4, scoreMinimoPosizione = 8)
         )
 
         return acquistoMiniPlancia?.let { AzioneGiocatore.BloccoAzioniSecondarie(listOf(it)) }

@@ -4,6 +4,7 @@ import it.contia4zampe.simulator.engine.*
 import it.contia4zampe.simulator.model.*
 import it.contia4zampe.simulator.player.decision.ValutatoreAzioneEconomica
 import it.contia4zampe.simulator.player.decision.SelettoreMiniPlancia
+import it.contia4zampe.simulator.player.decision.ConfigSelettoreMiniPlancia
 import it.contia4zampe.simulator.player.decision.PolicyAccoppiamento
 import it.contia4zampe.simulator.player.decision.PolicyAccoppiamentoConfig
 import it.contia4zampe.simulator.rules.calcolaUpkeep
@@ -21,7 +22,7 @@ class ProfiloAvventato : PlayerProfile {
             }
         }
 
-        val miglioreAzione = ValutatoreAzioneEconomica.scegliMigliore(stato, sg, azioniPossibili, sogliaScore = -8.0)
+        val miglioreAzione = ValutatoreAzioneEconomica.scegliMigliore(stato, sg, azioniPossibili, sogliaScore = -4.0)
         if (miglioreAzione is AzioneGiocatore.GiocaCartaRazza) {
             return miglioreAzione
         }
@@ -36,7 +37,8 @@ class ProfiloAvventato : PlayerProfile {
         val acquistoMiniPlancia = SelettoreMiniPlancia.suggerisciAcquisto(
             stato = stato,
             sg = sg,
-            marginePostAcquisto = (upkeep - 1).coerceAtLeast(0)
+            marginePostAcquisto = (upkeep - 1).coerceAtLeast(0),
+            config = ConfigSelettoreMiniPlancia(carteMinimeCoperte = 2, adultiMinimiSullaCoppia = 3, scoreMinimoPosizione = 7)
         )
         if (acquistoMiniPlancia != null) {
             return AzioneGiocatore.BloccoAzioniSecondarie(listOf(acquistoMiniPlancia))
