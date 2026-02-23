@@ -70,9 +70,14 @@ class ProfiloCostruttore : PlayerProfile {
     // Faccio l'override perché io voglio tenerli i cuccioli!
     override fun decidiGestioneCucciolo(sg: StatoGiocatoreGiornata, cucciolo: Cane): SceltaCucciolo {
         val g = sg.giocatore
-        // Se però sono disperato, vendo anche io
-        if (g.debiti > 2) return SceltaCucciolo.VENDI
-        
+        val upkeepAttuale = sg.calcolaUpkeepAttuale()
+        val upkeepFuturo = sg.calcolaUpkeepFuturo()
+
+        // Se sono in stress economico vendo il cucciolo subito per fare cassa.
+        if (g.debiti > 1 || g.doin <= upkeepAttuale || g.doin <= upkeepFuturo) {
+            return SceltaCucciolo.VENDI
+        }
+
         return SceltaCucciolo.TRASFORMA_IN_ADULTO
     }
     override fun scegliCartaDalMercato(giocatore: StatoGiocatoreGiornata, mercato: List<CartaRazza>) = mercato.first()

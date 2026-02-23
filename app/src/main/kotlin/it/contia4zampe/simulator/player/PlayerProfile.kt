@@ -17,12 +17,16 @@ interface PlayerProfile {
     // LOGICA DI DEFAULT: Valida per quasi tutti (Prudente, Avventato, ecc.)
     fun decidiGestioneCucciolo(sg: StatoGiocatoreGiornata, cucciolo: Cane): SceltaCucciolo {
         val g = sg.giocatore
-        // Se ho debiti o sono quasi a secco, vendo sempre per sopravvivere
-        if (g.debiti > 0 || g.doin < 5) {
+        val upkeepAttuale = sg.calcolaUpkeepAttuale()
+        val upkeepFuturo = sg.calcolaUpkeepFuturo()
+
+        // Se sono sotto pressione economica, monetizzo subito il cucciolo.
+        if (g.debiti > 0 || g.doin <= upkeepAttuale || g.doin <= upkeepFuturo) {
             return SceltaCucciolo.VENDI
         }
-        // Default prudente: vendi. Il Costruttore farà l'override di questo metodo.
-        return SceltaCucciolo.VENDI
+
+        // Se economicamente reggo, preferisco far crescere il cane.
+        return SceltaCucciolo.TRASFORMA_IN_ADULTO
     }
 
     // LOGICA DI DEFAULT: Prendi la prima carta (o la più economica)

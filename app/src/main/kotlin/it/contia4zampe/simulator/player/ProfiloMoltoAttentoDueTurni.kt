@@ -61,11 +61,11 @@ class ProfiloMoltoAttentoDueTurni(
     }
 
     override fun vuoleDichiarareAccoppiamento(
-        statoGiocatore: StatoGiocatoreGiornata,
+        sg: StatoGiocatoreGiornata,
         carta: CartaRazza
     ): Boolean {
         return PolicyAccoppiamento.dovrebbeDichiarare(
-            statoGiocatore = statoGiocatore,
+            statoGiocatore = sg,
             carta = carta,
             config = PolicyAccoppiamentoConfig(
                 sogliaDebitiMassima = sogliaDebitiMassima,

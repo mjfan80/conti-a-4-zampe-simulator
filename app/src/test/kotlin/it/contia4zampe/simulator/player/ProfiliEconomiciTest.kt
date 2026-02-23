@@ -4,6 +4,7 @@ import it.contia4zampe.simulator.engine.StatoGiocatoreGiornata
 import it.contia4zampe.simulator.engine.StatoGiornata
 import it.contia4zampe.simulator.model.*
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -270,6 +271,46 @@ class ProfiliEconomiciTest {
 
             assertTrue(azione is AzioneGiocatore.GiocaCartaRazza, "${profilo::class.simpleName} dovrebbe giocare carta in early game sostenibile")
         }
+    }
+
+    @Test
+    fun `costruttore vende cucciolo se la liquidita non copre upkeep attuale`() {
+        val carta = CartaRazza("Papillon", 3, 1, 1, 2, Taglia.PICCOLA)
+        repeat(4) { carta.cani.add(Cane.crea(StatoCane.CUCCIOLO, 1)) }
+
+        val giocatore = Giocatore(
+            id = 1,
+            doin = 2,
+            debiti = 0,
+            plancia = PlanciaGiocatore(listOf(mutableListOf(), mutableListOf(carta), mutableListOf()))
+        )
+
+        val profilo = ProfiloCostruttore()
+        val statoGiocatore = StatoGiocatoreGiornata(giocatore, profilo)
+
+        val scelta = profilo.decidiGestioneCucciolo(statoGiocatore, carta.cani.first())
+
+        assertEquals(SceltaCucciolo.VENDI, scelta)
+    }
+
+    @Test
+    fun `avventato vende cucciolo quando e in debito`() {
+        val carta = CartaRazza("Drever", 4, 1, 2, 3, Taglia.MEDIA)
+        carta.cani.add(Cane.crea(StatoCane.CUCCIOLO, 1))
+
+        val giocatore = Giocatore(
+            id = 2,
+            doin = 10,
+            debiti = 1,
+            plancia = PlanciaGiocatore(listOf(mutableListOf(carta), mutableListOf(), mutableListOf()))
+        )
+
+        val profilo = ProfiloAvventato()
+        val statoGiocatore = StatoGiocatoreGiornata(giocatore, profilo)
+
+        val scelta = profilo.decidiGestioneCucciolo(statoGiocatore, carta.cani.first())
+
+        assertEquals(SceltaCucciolo.VENDI, scelta)
     }
 
 }

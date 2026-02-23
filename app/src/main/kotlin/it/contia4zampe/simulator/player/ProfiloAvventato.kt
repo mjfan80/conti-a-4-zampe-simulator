@@ -72,6 +72,16 @@ class ProfiloAvventato : PlayerProfile {
         return null
     }
 
-    override fun decidiGestioneCucciolo(sg: StatoGiocatoreGiornata, cucciolo: Cane) = SceltaCucciolo.TRASFORMA_IN_ADULTO
+    override fun decidiGestioneCucciolo(sg: StatoGiocatoreGiornata, cucciolo: Cane): SceltaCucciolo {
+        val g = sg.giocatore
+        val upkeepAttuale = sg.calcolaUpkeepAttuale()
+
+        // Anche l'avventato, se corto di liquidità o in debito, monetizza subito il cucciolo.
+        if (g.debiti > 0 || g.doin <= upkeepAttuale) {
+            return SceltaCucciolo.VENDI
+        }
+
+        return SceltaCucciolo.TRASFORMA_IN_ADULTO
+    }
     override fun scegliCartaDalMercato(giocatore: StatoGiocatoreGiornata, mercato: List<CartaRazza>) = mercato.maxByOrNull { it.rendita } ?: mercato.first()
 }
