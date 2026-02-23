@@ -51,7 +51,7 @@ class AccoppiamentiRulesTest {
         cartaCostruttore.cani.add(Cane.crea(StatoCane.ADULTO))
 
         val giocatorePassivo = Giocatore(1, 0, 0, PlanciaGiocatore(listOf(mutableListOf(cartaPassivo))))
-        val giocatoreCostruttore = Giocatore(2, 0, 0, PlanciaGiocatore(listOf(mutableListOf(cartaCostruttore))))
+        val giocatoreCostruttore = Giocatore(2, 20, 0, PlanciaGiocatore(listOf(mutableListOf(cartaCostruttore))))
 
         val statoPassivo = StatoGiocatoreGiornata(giocatorePassivo, ProfiloPassivo())
         val statoCostruttore = StatoGiocatoreGiornata(giocatoreCostruttore, ProfiloCostruttore())

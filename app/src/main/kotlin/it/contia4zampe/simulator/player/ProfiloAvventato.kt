@@ -2,23 +2,29 @@ package it.contia4zampe.simulator.player
 
 import it.contia4zampe.simulator.engine.*
 import it.contia4zampe.simulator.model.*
-import it.contia4zampe.simulator.rules.puòPiazzareInRiga
+import it.contia4zampe.simulator.player.decision.ValutatoreAzioneEconomica
+import it.contia4zampe.simulator.player.decision.SelettoreMiniPlancia
+import it.contia4zampe.simulator.player.decision.ConfigSelettoreMiniPlancia
+import it.contia4zampe.simulator.player.decision.PolicyAccoppiamento
+import it.contia4zampe.simulator.player.decision.PolicyAccoppiamentoConfig
+import it.contia4zampe.simulator.rules.calcolaUpkeep
 
 class ProfiloAvventato : PlayerProfile {
 
-    override fun decidiAzione(stato: StatoGiornata, sg: StatoGiocatoreGiornata): AzioneGiocatore {
-        val g = sg.giocatore
-        val nCaniAttuali = g.plancia.righe.flatten().flatMap { it.cani }.size
-
-        // Compra se gli restano i soldi giusti per l'upkeep dei cani che avrà stasera
+    override fun decidiAzione(statoGiornata: StatoGiornata, statoGiocatore: StatoGiocatoreGiornata): AzioneGiocatore {
+        val g = statoGiocatore.giocatore
+        val azioniPossibili = mutableListOf<AzioneGiocatore>(AzioneGiocatore.Passa)
         for (carta in g.mano) {
-            if (g.doin >= (carta.costo + nCaniAttuali + 2)) {
-                for (r in 0 until g.plancia.righe.size) {
-                    if (g.plancia.puoOspitareTaglia(r, carta.taglia) && g.plancia.haSpazioInRiga(r)) {
-                        return AzioneGiocatore.GiocaCartaRazza(carta, r, g.plancia.righe[r].size)
-                    }
+            for (r in 0 until g.plancia.righe.size) {
+                if (g.plancia.puoOspitareTaglia(r, carta.taglia) && g.plancia.haSpazioInRiga(r)) {
+                    azioniPossibili.add(AzioneGiocatore.GiocaCartaRazza(carta, r, g.plancia.righe[r].size))
                 }
             }
+        }
+
+        val miglioreAzione = ValutatoreAzioneEconomica.scegliMigliore(statoGiornata, statoGiocatore, azioniPossibili, sogliaScore = -4.0)
+        if (miglioreAzione is AzioneGiocatore.GiocaCartaRazza) {
+            return miglioreAzione
         }
 
         // Vende solo se ha già dei debiti pesanti (3+)
@@ -27,14 +33,31 @@ class ProfiloAvventato : PlayerProfile {
             if (vendita != null) return AzioneGiocatore.VendiCani(listOf(vendita))
         }
 
+        val upkeep = calcolaUpkeep(g, statoGiornata.eventoAttivo).costoTotale
+        val acquistoMiniPlancia = SelettoreMiniPlancia.suggerisciAcquisto(
+            stato = statoGiornata,
+            sg = statoGiocatore,
+            marginePostAcquisto = (upkeep - 1).coerceAtLeast(0),
+            config = ConfigSelettoreMiniPlancia(carteMinimeCoperte = 2, adultiMinimiSullaCoppia = 3, scoreMinimoPosizione = 7)
+        )
+        if (acquistoMiniPlancia != null) {
+            return AzioneGiocatore.BloccoAzioniSecondarie(listOf(acquistoMiniPlancia))
+        }
+
         return AzioneGiocatore.Passa
     }
 
     override fun vuoleDichiarareAccoppiamento(sg: StatoGiocatoreGiornata, carta: CartaRazza): Boolean {
-        val g = sg.giocatore
-        val nCani = g.plancia.righe.flatten().flatMap { it.cani }.size
-        // Regola di buon senso: accoppia solo se hai almeno 2 doin extra oltre all'upkeep
-        return g.doin > (nCani + 2) && g.debiti <3
+        return PolicyAccoppiamento.dovrebbeDichiarare(
+            statoGiocatore = sg,
+            carta = carta,
+            config = PolicyAccoppiamentoConfig(
+                sogliaDebitiMassima = 3,
+                margineDoinMinimoPostUpkeep = 0,
+                consentiPeggioramentoDebiti = true,
+                tolleranzaRiduzioneDoin = 12
+            )
+        )
     }
     
 
@@ -49,6 +72,16 @@ class ProfiloAvventato : PlayerProfile {
         return null
     }
 
-    override fun decidiGestioneCucciolo(sg: StatoGiocatoreGiornata, c: Cane) = SceltaCucciolo.TRASFORMA_IN_ADULTO
-    override fun scegliCartaDalMercato(sg: StatoGiocatoreGiornata, m: List<CartaRazza>) = m.maxByOrNull { it.rendita } ?: m.first()
+    override fun decidiGestioneCucciolo(sg: StatoGiocatoreGiornata, cucciolo: Cane): SceltaCucciolo {
+        val g = sg.giocatore
+        val upkeepAttuale = sg.calcolaUpkeepAttuale()
+
+        // Anche l'avventato, se corto di liquidità o in debito, monetizza subito il cucciolo.
+        if (g.debiti > 0 || g.doin <= upkeepAttuale) {
+            return SceltaCucciolo.VENDI
+        }
+
+        return SceltaCucciolo.TRASFORMA_IN_ADULTO
+    }
+    override fun scegliCartaDalMercato(giocatore: StatoGiocatoreGiornata, mercato: List<CartaRazza>) = mercato.maxByOrNull { it.rendita } ?: mercato.first()
 }

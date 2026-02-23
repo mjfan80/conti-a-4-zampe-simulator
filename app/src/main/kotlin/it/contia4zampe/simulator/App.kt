@@ -29,7 +29,7 @@ fun main(args: Array<String>) {
     val result = engine.simula(config, collector)
 
     val aggregator = SimulationReportAggregator()
-    val summary = aggregator.aggregate(result, collector.dayEndSnapshots)
+    val summary = aggregator.aggregate(result, collector.dayEndSnapshots, collector.decisionEvents)
 
     val runId = "run-${Instant.now().toEpochMilli()}"
     val exporter = CsvReportExporter()
@@ -41,6 +41,7 @@ fun main(args: Array<String>) {
     println("- ${exported.gamesFile.path}")
     println("- ${exported.playersFile.path}")
     println("- ${exported.winnerCardsFile.path}")
+    println("- ${exported.profileDecisionsFile.path}")
 }
 
 private fun parseArgs(args: Array<String>): Map<String, String> {

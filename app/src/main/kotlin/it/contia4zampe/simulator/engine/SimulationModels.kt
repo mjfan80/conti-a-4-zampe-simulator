@@ -58,3 +58,12 @@ data class PlayerSnapshot(
     val carteInPlancia: Int,
     val carteInMano: Int
 )
+
+data class DecisionEvent(
+    val gameId: Int,
+    val dayNumber: Int,
+    val playerId: Int,
+    val profileName: String,
+    val actionType: String,
+    val actionName: String
+)

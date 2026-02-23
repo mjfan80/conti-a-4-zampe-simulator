@@ -27,7 +27,18 @@ class CsvReportExporterTest {
                 )
             ),
             top5CarteVincitori = listOf(WinnerCardStat("Beagle", 2, 66.67, false)),
-            bottomCarteVincitori = listOf(WinnerCardStat("Carlino", 0, 0.0, true))
+            bottomCarteVincitori = listOf(WinnerCardStat("Carlino", 0, 0.0, true)),
+            profileDecisions = listOf(
+                ProfileDecisionReportRow(
+                    profileName = "ProfiloCostruttore",
+                    azioniPrincipali = 3,
+                    azioniSecondarie = 2,
+                    passaggi = 1,
+                    acquistiMiniPlancia = 1,
+                    addestramenti = 1,
+                    pagamentiDebito = 0
+                )
+            )
         )
 
         val games = listOf(
@@ -47,10 +58,12 @@ class CsvReportExporterTest {
         assertTrue(exported.gamesFile.exists())
         assertTrue(exported.playersFile.exists())
         assertTrue(exported.winnerCardsFile.exists())
+        assertTrue(exported.profileDecisionsFile.exists())
 
         assertTrue(exported.summaryFile.readText().contains("run-test"))
         assertTrue(exported.gamesFile.readText().contains("winner_ids"))
         assertTrue(exported.playersFile.readText().contains("cards_in_board_final"))
         assertTrue(exported.winnerCardsFile.readText().contains("card_name"))
+        assertTrue(exported.profileDecisionsFile.readText().contains("profile_name"))
     }
 }

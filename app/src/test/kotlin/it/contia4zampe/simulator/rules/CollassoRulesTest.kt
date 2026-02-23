@@ -14,6 +14,7 @@ class CollassoTest {
         val cane2 = Cane.crea(StatoCane.ADULTO)
         carta.cani.add(cane1)
         carta.cani.add(cane2)
+        carta.appenaGiocata = false // Simuliamo che la carta sia già in gioco da un turno
 
         val giocatore = Giocatore(1, 0, 0, PlanciaGiocatore(listOf(mutableListOf(carta))))
 

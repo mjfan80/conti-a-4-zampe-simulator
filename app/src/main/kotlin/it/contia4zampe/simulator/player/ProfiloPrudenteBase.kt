@@ -2,41 +2,63 @@ package it.contia4zampe.simulator.player
 
 import it.contia4zampe.simulator.engine.*
 import it.contia4zampe.simulator.model.*
+import it.contia4zampe.simulator.player.decision.ValutatoreAzioneEconomica
+import it.contia4zampe.simulator.player.decision.SelettoreMiniPlancia
+import it.contia4zampe.simulator.player.decision.ConfigSelettoreMiniPlancia
+import it.contia4zampe.simulator.player.decision.PolicyAccoppiamento
+import it.contia4zampe.simulator.player.decision.PolicyAccoppiamentoConfig
 import it.contia4zampe.simulator.rules.calcolaUpkeep
-import it.contia4zampe.simulator.rules.puòPiazzareInRiga
 
 class ProfiloPrudenteBase : PlayerProfile {
 
-    override fun decidiAzione(stato: StatoGiornata, sg: StatoGiocatoreGiornata): AzioneGiocatore {
-        val g = sg.giocatore
-        val upkeep = calcolaUpkeep(g, stato.eventoAttivo).costoTotale
+    override fun decidiAzione(statoGiornata: StatoGiornata, statoGiocatore: StatoGiocatoreGiornata): AzioneGiocatore {
+        val g = statoGiocatore.giocatore
+        val upkeep = calcolaUpkeep(g, statoGiornata.eventoAttivo).costoTotale
 
         // 1. PRIORITÀ ASSOLUTA: Paga debiti subito
         if (g.debiti > 0 && g.doin >= 2) {
             return AzioneGiocatore.BloccoAzioniSecondarie(listOf(AzioneSecondaria.PagaDebito))
         }
 
-        // 2. ACQUISTO SUPER PROTETTO: Deve restargli il DOPPIO dell'upkeep in cassa
+        val azioniPossibili = mutableListOf<AzioneGiocatore>(AzioneGiocatore.Passa)
         for (carta in g.mano) {
-            if (g.doin >= (carta.costo + (upkeep * 2) + 5)) {
-                for (r in 0 until g.plancia.righe.size) {
-                    if (g.plancia.puoOspitareTaglia(r, carta.taglia) && g.plancia.haSpazioInRiga(r)) {
-                        return AzioneGiocatore.GiocaCartaRazza(carta, r, g.plancia.righe[r].size)
-                    }
+            for (r in 0 until g.plancia.righe.size) {
+                if (g.plancia.puoOspitareTaglia(r, carta.taglia) && g.plancia.haSpazioInRiga(r)) {
+                    azioniPossibili.add(AzioneGiocatore.GiocaCartaRazza(carta, r, g.plancia.righe[r].size))
                 }
             }
         }
 
-        return AzioneGiocatore.Passa
+        // Prudente: accetta solo giocate con score chiaramente positivo.
+        val sceltaPrincipale = ValutatoreAzioneEconomica.scegliMigliore(statoGiornata, statoGiocatore, azioniPossibili, sogliaScore = -2.0)
+        if (sceltaPrincipale !is AzioneGiocatore.Passa) {
+            return sceltaPrincipale
+        }
+
+        val acquistoMiniPlancia = SelettoreMiniPlancia.suggerisciAcquisto(
+            stato = statoGiornata,
+            sg = statoGiocatore,
+            marginePostAcquisto = upkeep + 3,
+            config = ConfigSelettoreMiniPlancia(carteMinimeCoperte = 2, adultiMinimiSullaCoppia = 4, scoreMinimoPosizione = 8)
+        )
+
+        return acquistoMiniPlancia?.let { AzioneGiocatore.BloccoAzioniSecondarie(listOf(it)) }
+            ?: AzioneGiocatore.Passa
     }
 
     override fun vuoleDichiarareAccoppiamento(sg: StatoGiocatoreGiornata, carta: CartaRazza): Boolean {
-        val g = sg.giocatore
-        val nCani = g.plancia.righe.flatten().flatMap { it.cani }.size
-        // Regola di buon senso: accoppia solo se hai almeno 5 doin extra oltre all'upkeep
-        return g.doin > (nCani + 5) && g.debiti == 0
+        return PolicyAccoppiamento.dovrebbeDichiarare(
+            statoGiocatore = sg,
+            carta = carta,
+            config = PolicyAccoppiamentoConfig(
+                sogliaDebitiMassima = 0,
+                margineDoinMinimoPostUpkeep = 5,
+                consentiPeggioramentoDebiti = false,
+                tolleranzaRiduzioneDoin = 2
+            )
+        )
     }
     
 
-    override fun scegliCartaDalMercato(sg: StatoGiocatoreGiornata, m: List<CartaRazza>) = m.minByOrNull { it.costo } ?: m.first()
+    override fun scegliCartaDalMercato(giocatore: StatoGiocatoreGiornata, mercato: List<CartaRazza>) = mercato.minByOrNull { it.costo } ?: mercato.first()
 }

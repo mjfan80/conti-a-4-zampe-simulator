@@ -5,9 +5,12 @@ import it.contia4zampe.simulator.engine.StatoGiocatoreGiornata
 import it.contia4zampe.simulator.model.Cane
 import it.contia4zampe.simulator.model.CartaRazza
 import it.contia4zampe.simulator.model.SceltaCucciolo
+import it.contia4zampe.simulator.player.decision.ValutatoreAzioneEconomica
+import it.contia4zampe.simulator.player.decision.SelettoreMiniPlancia
+import it.contia4zampe.simulator.player.decision.ConfigSelettoreMiniPlancia
+import it.contia4zampe.simulator.player.decision.PolicyAccoppiamento
+import it.contia4zampe.simulator.player.decision.PolicyAccoppiamentoConfig
 import it.contia4zampe.simulator.rules.calcolaUpkeep
-import it.contia4zampe.simulator.rules.puòPiazzareInRiga
-import it.contia4zampe.simulator.rules.stimaEconomiaDueGiornateConAccoppiamento
 
 class ProfiloMoltoAttentoDueTurni(
     private val sogliaDebitiMassima: Int = 1
@@ -18,39 +21,36 @@ class ProfiloMoltoAttentoDueTurni(
         statoGiocatore: StatoGiocatoreGiornata
     ): AzioneGiocatore {
         val giocatore = statoGiocatore.giocatore
-        val upkeepCorrente = calcolaUpkeep(giocatore).costoTotale
-
-        var miglioreCarta: CartaRazza? = null
-        var miglioreRiga = -1
-        var migliorCosto = Int.MAX_VALUE
-
+        val azioniPossibili = mutableListOf<AzioneGiocatore>(AzioneGiocatore.Passa)
         for (carta in giocatore.mano) {
-            if (giocatore.doin < carta.costo) continue
-
-            var doinResidui = giocatore.doin - carta.costo 
-            doinResidui -=10 // margine di 10 doin per sicurezza dopo l'acquisto
-            if (doinResidui < upkeepCorrente) continue
-
             for (indiceRiga in giocatore.plancia.righe.indices) {
-                if (puòPiazzareInRiga(giocatore.plancia, carta, indiceRiga) && giocatore.plancia.haSpazioInRiga(indiceRiga)) {
-                    if (carta.costo < migliorCosto) {
-                        miglioreCarta = carta
-                        miglioreRiga = indiceRiga
-                        migliorCosto = carta.costo
-                    }
+                if (giocatore.plancia.puoOspitareTaglia(indiceRiga, carta.taglia) && giocatore.plancia.haSpazioInRiga(indiceRiga)) {
+                    azioniPossibili.add(
+                        AzioneGiocatore.GiocaCartaRazza(
+                            carta = carta,
+                            rigaDestinazione = indiceRiga,
+                            slotDestinazione = giocatore.plancia.righe[indiceRiga].size
+                        )
+                    )
                 }
             }
         }
 
-        if (miglioreCarta != null) {
-            return AzioneGiocatore.GiocaCartaRazza(
-                carta = miglioreCarta,
-                rigaDestinazione = miglioreRiga,
-                slotDestinazione = giocatore.plancia.righe[miglioreRiga].size
-            )
+        val sceltaPrincipale = ValutatoreAzioneEconomica.scegliMigliore(statoGiornata, statoGiocatore, azioniPossibili, sogliaScore = 2.5)
+        if (sceltaPrincipale !is AzioneGiocatore.Passa) {
+            return sceltaPrincipale
         }
 
-        return AzioneGiocatore.Passa
+        val upkeep = calcolaUpkeep(giocatore, statoGiornata.eventoAttivo).costoTotale
+        val acquistoMiniPlancia = SelettoreMiniPlancia.suggerisciAcquisto(
+            stato = statoGiornata,
+            sg = statoGiocatore,
+            marginePostAcquisto = upkeep + 5,
+            config = ConfigSelettoreMiniPlancia(carteMinimeCoperte = 2, adultiMinimiSullaCoppia = 4, scoreMinimoPosizione = 8)
+        )
+
+        return acquistoMiniPlancia?.let { AzioneGiocatore.BloccoAzioniSecondarie(listOf(it)) }
+            ?: AzioneGiocatore.Passa
     }
 
     override fun scegliCartaDalMercato(
@@ -61,31 +61,18 @@ class ProfiloMoltoAttentoDueTurni(
     }
 
     override fun vuoleDichiarareAccoppiamento(
-        statoGiocatore: StatoGiocatoreGiornata,
+        sg: StatoGiocatoreGiornata,
         carta: CartaRazza
     ): Boolean {
-        val esitoSenza = stimaEconomiaDueGiornateConAccoppiamento(
-            statoGiocatore = statoGiocatore,
-            cartaTarget = carta,
-            dichiaraAccoppiamento = false
+        return PolicyAccoppiamento.dovrebbeDichiarare(
+            statoGiocatore = sg,
+            carta = carta,
+            config = PolicyAccoppiamentoConfig(
+                sogliaDebitiMassima = sogliaDebitiMassima,
+                margineDoinMinimoPostUpkeep = 4,
+                consentiPeggioramentoDebiti = false,
+                tolleranzaRiduzioneDoin = 3
+            )
         )
-
-        val esitoCon = stimaEconomiaDueGiornateConAccoppiamento(
-            statoGiocatore = statoGiocatore,
-            cartaTarget = carta,
-            dichiaraAccoppiamento = true
-        )
-
-        if (esitoCon.debitiFinali > sogliaDebitiMassima) {
-            return false
-        }
-
-        // Ulteriore vincolo prudente: l'accoppiamento non deve peggiorare la posizione debitoria
-        if (esitoCon.debitiFinali > esitoSenza.debitiFinali) {
-            return false
-        }
-
-        // Se rimane entro soglia debiti, accetta anche riduzioni moderate di liquidità
-        return true
     }
 }

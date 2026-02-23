@@ -4,6 +4,7 @@ import it.contia4zampe.simulator.engine.PartitaResult
 import it.contia4zampe.simulator.engine.PlayerGameResult
 import it.contia4zampe.simulator.engine.PlayerSnapshot
 import it.contia4zampe.simulator.engine.SimulationConfig
+import it.contia4zampe.simulator.engine.DecisionEvent
 import it.contia4zampe.simulator.engine.SimulationResult
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -61,5 +62,37 @@ class SimulationReportAggregatorTest {
 
         assertTrue(report.top5CarteVincitori.any { it.cardName == "Beagle" })
         assertTrue(report.bottomCarteVincitori.any { it.cardName == "Carlino" || it.cardName == "Pastore" || it.cardName == "Labrador" })
+    }
+
+    @Test
+    fun `aggregate include metriche decisionali per profilo`() {
+        val result = SimulationResult(
+            config = SimulationConfig(numeroPartite = 1, numeroGiocatori = 1),
+            partite = listOf(
+                PartitaResult(
+                    gameId = 1,
+                    giornateGiocate = 2,
+                    winnerIds = listOf(1),
+                    playerResults = listOf(
+                        PlayerGameResult(1, 8, 10, 0, 1, 0, listOf("Beagle"))
+                    )
+                )
+            )
+        )
+
+        val report = SimulationReportAggregator().aggregate(
+            result,
+            daySnapshots = emptyList(),
+            decisionEvents = listOf(
+                DecisionEvent(1, 1, 1, "ProfiloCostruttore", "PRINCIPALE", "GiocaCartaRazza"),
+                DecisionEvent(1, 1, 1, "ProfiloCostruttore", "SECONDARIA", "BloccoAzioniSecondarie"),
+                DecisionEvent(1, 2, 1, "ProfiloCostruttore", "PASSA", "Passa")
+            )
+        )
+
+        val row = report.profileDecisions.first { it.profileName == "ProfiloCostruttore" }
+        assertEquals(1, row.azioniPrincipali)
+        assertEquals(1, row.azioniSecondarie)
+        assertEquals(1, row.passaggi)
     }
 }

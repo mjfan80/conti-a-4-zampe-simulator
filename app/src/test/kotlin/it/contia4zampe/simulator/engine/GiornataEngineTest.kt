@@ -17,9 +17,9 @@ import org.junit.jupiter.api.Test
  * vogliamo che dica SEMPRE SI alla dichiarazione di accoppiamento.
  */
 class ProfiloSempreAccoppia : PlayerProfile {
-    override fun decidiAzione(s: StatoGiornata, sg: StatoGiocatoreGiornata) = AzioneGiocatore.Passa
-    override fun decidiGestioneCucciolo(sg: StatoGiocatoreGiornata, c: Cane) = SceltaCucciolo.VENDI
-    override fun scegliCartaDalMercato(sg: StatoGiocatoreGiornata, m: List<CartaRazza>) = m.first()
+    override fun decidiAzione(statoGiornata: StatoGiornata, statoGiocatore: StatoGiocatoreGiornata) = AzioneGiocatore.Passa
+    override fun decidiGestioneCucciolo(sg: StatoGiocatoreGiornata, cucciolo: Cane) = SceltaCucciolo.VENDI
+    override fun scegliCartaDalMercato(giocatore: StatoGiocatoreGiornata, mercato: List<CartaRazza>) = mercato.first()
     
     // Forza il SI per il test
     override fun vuoleDichiarareAccoppiamento(sg: StatoGiocatoreGiornata, carta: CartaRazza) = true

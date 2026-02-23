@@ -54,7 +54,7 @@ class PartitaEngine(private val giornataEngine: GiornataEngine = GiornataEngine(
 
                 collector.onDayStarted(gameId, statoPartita.numero, snapshotGiocatori(statoPartita))
 
-                giornataEngine.eseguiGiornata(statoPartita)
+                giornataEngine.eseguiGiornata(statoPartita, collector, gameId)
 
                 collector.onDayEnded(gameId, statoPartita.numero, snapshotGiocatori(statoPartita))
 
@@ -66,7 +66,7 @@ class PartitaEngine(private val giornataEngine: GiornataEngine = GiornataEngine(
                 println("--- FINE GIORNATA ${statoPartita.numero} ---")
                 for (sg in statoPartita.giocatori) {
                     val puntiAttuali = calcolaPuntiVittoriaBase(sg.giocatore)
-                    println("G${sg.giocatore.id}: ${sg.giocatore.doin} doin, ${sg.giocatore.debiti} deb, ${sg.giocatore.plancia.slotOccupatiTotali()} carte, PV: $puntiAttuali")
+                    println(formatoDettaglioFineGiornata(sg, puntiAttuali))
                 }
 
 
@@ -264,5 +264,37 @@ class PartitaEngine(private val giornataEngine: GiornataEngine = GiornataEngine(
             g.doin += 5
             println("SETUP: G${g.id} riceve 5 doin extra")
         }
+    }
+
+    private fun formatoDettaglioFineGiornata(sg: StatoGiocatoreGiornata, puntiAttuali: Int): String {
+        val g = sg.giocatore
+        val header = "G${g.id}: ${g.doin} doin, ${g.debiti} deb, ${g.plancia.slotOccupatiTotali()} carte in plancia, ${g.mano.size} carte in mano, PV: $puntiAttuali"
+
+        val dettagliCarte = mutableListOf<String>()
+
+        for (indiceRiga in g.plancia.righe.indices) {
+            val riga = g.plancia.righe[indiceRiga]
+            for (indiceSlot in riga.indices) {
+                val carta = riga[indiceSlot]
+                val adulti = carta.cani.count { it.stato == StatoCane.ADULTO }
+                val cuccioli = carta.cani.count { it.stato == StatoCane.CUCCIOLO }
+                val addestrati = carta.cani.count { it.stato == StatoCane.ADULTO_ADDESTRATO }
+                val inAddestramento = carta.cani.count { it.stato == StatoCane.IN_ADDESTRAMENTO }
+                val inAccoppiamento = carta.cani.count { it.stato == StatoCane.IN_ACCOPPIAMENTO }
+
+                dettagliCarte.add(
+                    "  - [riga ${indiceRiga + 1}, slot ${indiceSlot + 1}] ${carta.nome}: " +
+                        "AD=$adulti, CU=$cuccioli, AA=$addestrati, IA=$inAddestramento, IC=$inAccoppiamento"
+                )
+            }
+        }
+
+        val dettaglioPlancia = if (dettagliCarte.isEmpty()) {
+            "\n  - Nessuna carta in plancia"
+        } else {
+            "\n" + dettagliCarte.joinToString("\n")
+        }
+
+        return header + dettaglioPlancia
     }
 }
