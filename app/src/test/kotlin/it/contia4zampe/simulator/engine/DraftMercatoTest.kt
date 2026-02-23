@@ -12,8 +12,8 @@ import org.junit.jupiter.api.Test
 // Questo è il concetto di "Stub" in Java
 class ProfiloPerTest(val cartaDaScegliere: CartaRazza) : PlayerProfile {
     override fun decidiAzione(statoGiornata: StatoGiornata, statoGiocatore: StatoGiocatoreGiornata) = AzioneGiocatore.Passa
-    override fun decidiGestioneCucciolo(statoGiocatore: StatoGiocatoreGiornata, cucciolo: Cane) = SceltaCucciolo.VENDI
-    override fun vuoleDichiarareAccoppiamento(statoGiocatore: StatoGiocatoreGiornata, carta: CartaRazza) = false
+    override fun decidiGestioneCucciolo(sg: StatoGiocatoreGiornata, cucciolo: Cane) = SceltaCucciolo.VENDI
+    override fun vuoleDichiarareAccoppiamento(sg: StatoGiocatoreGiornata, carta: CartaRazza) = false
     
     // Ecco la chiave: questo profilo sceglie la carta che gli abbiamo passato nel costruttore
     override fun scegliCartaDalMercato(giocatore: StatoGiocatoreGiornata, mercato: List<CartaRazza>): CartaRazza {

@@ -11,8 +11,8 @@ import it.contia4zampe.simulator.rules.calcolaUpkeep
 
 class ProfiloAvventato : PlayerProfile {
 
-    override fun decidiAzione(stato: StatoGiornata, sg: StatoGiocatoreGiornata): AzioneGiocatore {
-        val g = sg.giocatore
+    override fun decidiAzione(statoGiornata: StatoGiornata, statoGiocatore: StatoGiocatoreGiornata): AzioneGiocatore {
+        val g = statoGiocatore.giocatore
         val azioniPossibili = mutableListOf<AzioneGiocatore>(AzioneGiocatore.Passa)
         for (carta in g.mano) {
             for (r in 0 until g.plancia.righe.size) {
@@ -22,7 +22,7 @@ class ProfiloAvventato : PlayerProfile {
             }
         }
 
-        val miglioreAzione = ValutatoreAzioneEconomica.scegliMigliore(stato, sg, azioniPossibili, sogliaScore = -4.0)
+        val miglioreAzione = ValutatoreAzioneEconomica.scegliMigliore(statoGiornata, statoGiocatore, azioniPossibili, sogliaScore = -4.0)
         if (miglioreAzione is AzioneGiocatore.GiocaCartaRazza) {
             return miglioreAzione
         }
@@ -33,10 +33,10 @@ class ProfiloAvventato : PlayerProfile {
             if (vendita != null) return AzioneGiocatore.VendiCani(listOf(vendita))
         }
 
-        val upkeep = calcolaUpkeep(g, stato.eventoAttivo).costoTotale
+        val upkeep = calcolaUpkeep(g, statoGiornata.eventoAttivo).costoTotale
         val acquistoMiniPlancia = SelettoreMiniPlancia.suggerisciAcquisto(
-            stato = stato,
-            sg = sg,
+            stato = statoGiornata,
+            sg = statoGiocatore,
             marginePostAcquisto = (upkeep - 1).coerceAtLeast(0),
             config = ConfigSelettoreMiniPlancia(carteMinimeCoperte = 2, adultiMinimiSullaCoppia = 3, scoreMinimoPosizione = 7)
         )
@@ -72,6 +72,6 @@ class ProfiloAvventato : PlayerProfile {
         return null
     }
 
-    override fun decidiGestioneCucciolo(sg: StatoGiocatoreGiornata, c: Cane) = SceltaCucciolo.TRASFORMA_IN_ADULTO
-    override fun scegliCartaDalMercato(sg: StatoGiocatoreGiornata, m: List<CartaRazza>) = m.maxByOrNull { it.rendita } ?: m.first()
+    override fun decidiGestioneCucciolo(sg: StatoGiocatoreGiornata, cucciolo: Cane) = SceltaCucciolo.TRASFORMA_IN_ADULTO
+    override fun scegliCartaDalMercato(giocatore: StatoGiocatoreGiornata, mercato: List<CartaRazza>) = mercato.maxByOrNull { it.rendita } ?: mercato.first()
 }

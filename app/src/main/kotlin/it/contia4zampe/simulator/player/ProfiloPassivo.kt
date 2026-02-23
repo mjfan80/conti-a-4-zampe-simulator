@@ -17,7 +17,7 @@ class ProfiloPassivo : PlayerProfile {
 
     // IMPLEMENTAZIONE MANCANTE:
     override fun decidiGestioneCucciolo(
-        statoGiocatore: StatoGiocatoreGiornata,
+        sg: StatoGiocatoreGiornata,
         cucciolo: Cane
     ): SceltaCucciolo {
         // Il profilo passivo è "pigro" o conservativo: vende per fare cassa subito
@@ -33,7 +33,7 @@ class ProfiloPassivo : PlayerProfile {
     }
 
     override fun vuoleDichiarareAccoppiamento(
-        statoGiocatore: StatoGiocatoreGiornata,
+        sg: StatoGiocatoreGiornata,
         carta: CartaRazza
     ): Boolean {
         // Profilo passivo: evita rischio/complessità e non dichiara accoppiamenti

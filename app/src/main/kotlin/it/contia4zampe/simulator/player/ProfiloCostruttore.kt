@@ -11,8 +11,8 @@ import it.contia4zampe.simulator.rules.calcolaUpkeep
 
 class ProfiloCostruttore : PlayerProfile {
 
-    override fun decidiAzione(stato: StatoGiornata, sg: StatoGiocatoreGiornata): AzioneGiocatore {
-        val g = sg.giocatore
+    override fun decidiAzione(statoGiornata: StatoGiornata, statoGiocatore: StatoGiocatoreGiornata): AzioneGiocatore {
+        val g = statoGiocatore.giocatore
         val nCaniAttuali = g.plancia.righe.flatten().flatMap { it.cani }.size
         
         // 1. Se ho debiti e ho soldi, la priorità è pagare il debito (Azione Secondaria)
@@ -29,7 +29,7 @@ class ProfiloCostruttore : PlayerProfile {
             }
         }
 
-        val miglioreAzione = ValutatoreAzioneEconomica.scegliMigliore(stato, sg, azioniPossibili, sogliaScore = 0.5)
+        val miglioreAzione = ValutatoreAzioneEconomica.scegliMigliore(statoGiornata, statoGiocatore, azioniPossibili, sogliaScore = 0.5)
         if (miglioreAzione is AzioneGiocatore.GiocaCartaRazza) {
             return miglioreAzione
         }
@@ -40,10 +40,10 @@ class ProfiloCostruttore : PlayerProfile {
             if (vendita != null) return AzioneGiocatore.VendiCani(listOf(vendita))
         }
 
-        val upkeep = calcolaUpkeep(g, stato.eventoAttivo).costoTotale
+        val upkeep = calcolaUpkeep(g, statoGiornata.eventoAttivo).costoTotale
         val acquistoMiniPlancia = SelettoreMiniPlancia.suggerisciAcquisto(
-            stato = stato,
-            sg = sg,
+            stato = statoGiornata,
+            sg = statoGiocatore,
             marginePostAcquisto = upkeep + 1,
             config = ConfigSelettoreMiniPlancia(carteMinimeCoperte = 2, adultiMinimiSullaCoppia = 3, scoreMinimoPosizione = 7)
         )
@@ -75,5 +75,5 @@ class ProfiloCostruttore : PlayerProfile {
         
         return SceltaCucciolo.TRASFORMA_IN_ADULTO
     }
-    override fun scegliCartaDalMercato(sg: StatoGiocatoreGiornata, m: List<CartaRazza>) = m.first()
+    override fun scegliCartaDalMercato(giocatore: StatoGiocatoreGiornata, mercato: List<CartaRazza>) = mercato.first()
 }

@@ -11,9 +11,9 @@ import it.contia4zampe.simulator.rules.calcolaUpkeep
 
 class ProfiloPrudenteBase : PlayerProfile {
 
-    override fun decidiAzione(stato: StatoGiornata, sg: StatoGiocatoreGiornata): AzioneGiocatore {
-        val g = sg.giocatore
-        val upkeep = calcolaUpkeep(g, stato.eventoAttivo).costoTotale
+    override fun decidiAzione(statoGiornata: StatoGiornata, statoGiocatore: StatoGiocatoreGiornata): AzioneGiocatore {
+        val g = statoGiocatore.giocatore
+        val upkeep = calcolaUpkeep(g, statoGiornata.eventoAttivo).costoTotale
 
         // 1. PRIORITÀ ASSOLUTA: Paga debiti subito
         if (g.debiti > 0 && g.doin >= 2) {
@@ -30,14 +30,14 @@ class ProfiloPrudenteBase : PlayerProfile {
         }
 
         // Prudente: accetta solo giocate con score chiaramente positivo.
-        val sceltaPrincipale = ValutatoreAzioneEconomica.scegliMigliore(stato, sg, azioniPossibili, sogliaScore = -2.0)
+        val sceltaPrincipale = ValutatoreAzioneEconomica.scegliMigliore(statoGiornata, statoGiocatore, azioniPossibili, sogliaScore = -2.0)
         if (sceltaPrincipale !is AzioneGiocatore.Passa) {
             return sceltaPrincipale
         }
 
         val acquistoMiniPlancia = SelettoreMiniPlancia.suggerisciAcquisto(
-            stato = stato,
-            sg = sg,
+            stato = statoGiornata,
+            sg = statoGiocatore,
             marginePostAcquisto = upkeep + 3,
             config = ConfigSelettoreMiniPlancia(carteMinimeCoperte = 2, adultiMinimiSullaCoppia = 4, scoreMinimoPosizione = 8)
         )
@@ -60,5 +60,5 @@ class ProfiloPrudenteBase : PlayerProfile {
     }
     
 
-    override fun scegliCartaDalMercato(sg: StatoGiocatoreGiornata, m: List<CartaRazza>) = m.minByOrNull { it.costo } ?: m.first()
+    override fun scegliCartaDalMercato(giocatore: StatoGiocatoreGiornata, mercato: List<CartaRazza>) = mercato.minByOrNull { it.costo } ?: mercato.first()
 }
