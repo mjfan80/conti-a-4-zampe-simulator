@@ -259,7 +259,7 @@ class ProfiliEconomiciTest {
             val cartaGiocabile = CartaRazza("Economica", 3, 2, 2, 3, Taglia.MEDIA)
             val giocatore = Giocatore(
                 id = 1,
-                doin = 15,
+                doin = 25,
                 debiti = 0,
                 plancia = PlanciaGiocatore(listOf(mutableListOf(), mutableListOf(), mutableListOf())),
                 mano = mutableListOf(cartaGiocabile)

@@ -57,4 +57,69 @@ interface PlayerProfile {
         }
         return null
     }
+
+    fun cercaAzioneAddestramento(g: Giocatore): AzioneSecondaria.AddestraCane? {
+        for (riga in g.plancia.righe) {
+            for (carta in riga) {
+                // Contiamo tutti i tipi di adulti (regola dei 3)
+                val adultiTotali = carta.cani.count { 
+                    it.stato == StatoCane.ADULTO || 
+                    it.stato == StatoCane.ADULTO_ADDESTRATO || 
+                    it.stato == StatoCane.IN_ACCOPPIAMENTO || 
+                    it.stato == StatoCane.IN_ADDESTRAMENTO 
+                }
+                
+                val haSlotLibero = g.plancia.haSlotAddestramentoDisponibilePerCarta(carta)
+                val caneFisicoDisponibile = carta.cani.firstOrNull { it.stato == StatoCane.ADULTO }
+
+                if (adultiTotali >= 3 && haSlotLibero && caneFisicoDisponibile != null) {
+                    return AzioneSecondaria.AddestraCane(carta, caneFisicoDisponibile)
+                }
+            }
+        }
+        return null
+    }
+
+    /**
+     * Genera l'elenco di tutte le carte che il giocatore potrebbe legalmente 
+     * piazzare sulla sua plancia in questo momento.
+     */
+    fun generaGiocatePossibili(g: Giocatore): List<AzioneGiocatore> {
+        val lista = mutableListOf<AzioneGiocatore>()
+        
+        // Aggiungiamo sempre il "Passa" come opzione base
+        lista.add(AzioneGiocatore.Passa)
+        
+        // Cicliamo su ogni carta che abbiamo in mano
+        for (carta in g.mano) {
+            // Proviamo a vedere se sta in una delle 3 righe
+            for (indiceRiga in 0 until g.plancia.righe.size) {
+                // Se la riga accetta la taglia e ha ancora spazio...
+                if (g.plancia.puoOspitareTaglia(indiceRiga, carta.taglia) && g.plancia.haSpazioInRiga(indiceRiga)) {
+                    // ...aggiungiamo la giocata alle opzioni
+                    lista.add(
+                        AzioneGiocatore.GiocaCartaRazza(
+                            carta = carta,
+                            rigaDestinazione = indiceRiga,
+                            slotDestinazione = g.plancia.righe[indiceRiga].size
+                        )
+                    )
+                }
+            }
+        }
+        return lista
+    }
+
+
+    fun trovaCanePerEmergenza(g: Giocatore): DettaglioVendita? {
+        // Cerchiamo il primo cane adulto (anche addestrato) per fare cassa subito
+        for (riga in g.plancia.righe) {
+            for (carta in riga) {
+                val cane = carta.cani.firstOrNull { it.stato == StatoCane.ADULTO || it.stato == StatoCane.ADULTO_ADDESTRATO }
+                if (cane != null) return DettaglioVendita(carta, cane)
+            }
+        }
+        return null
+    }
+
 }

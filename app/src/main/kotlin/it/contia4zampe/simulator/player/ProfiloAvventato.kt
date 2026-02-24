@@ -13,42 +13,29 @@ class ProfiloAvventato : PlayerProfile {
 
     override fun decidiAzione(statoGiornata: StatoGiornata, statoGiocatore: StatoGiocatoreGiornata): AzioneGiocatore {
         val g = statoGiocatore.giocatore
-        val azioniPossibili = mutableListOf<AzioneGiocatore>(AzioneGiocatore.Passa)
-        for (carta in g.mano) {
-            for (r in 0 until g.plancia.righe.size) {
-                if (g.plancia.puoOspitareTaglia(r, carta.taglia) && g.plancia.haSpazioInRiga(r)) {
-                    azioniPossibili.add(AzioneGiocatore.GiocaCartaRazza(carta, r, g.plancia.righe[r].size))
-                }
-            }
-        }
-
-        val miglioreAzione = ValutatoreAzioneEconomica.scegliMigliore(
-                statoGiornata, statoGiocatore, azioniPossibili, 
-                sogliaScore = -10.0, 
-                sogliaSicurezza = 5,   // Gli bastano 5 doin per star tranquillo
-                pesoRiserva = 0.0      // Non gliene frega nulla se scende sotto la soglia
-            )
-        if (miglioreAzione is AzioneGiocatore.GiocaCartaRazza) {
-            return miglioreAzione
-        }
-
-        // Vende solo se ha già dei debiti pesanti (3+)
-        if (g.debiti >= 3) {
-            val vendita = trovaCaneSacrificabile(g)
-            if (vendita != null) return AzioneGiocatore.VendiCani(listOf(vendita))
-        }
-
-        val upkeep = calcolaUpkeep(g, statoGiornata.eventoAttivo).costoTotale
-        val acquistoMiniPlancia = SelettoreMiniPlancia.suggerisciAcquisto(
-            stato = statoGiornata,
-            sg = statoGiocatore,
-            marginePostAcquisto = (upkeep - 1).coerceAtLeast(0),
-            config = ConfigSelettoreMiniPlancia(carteMinimeCoperte = 2, adultiMinimiSullaCoppia = 3, scoreMinimoPosizione = 7)
+        
+        // 1. AZIONE PRINCIPALE: Gioca quasi tutto
+        val opzioni = generaGiocatePossibili(g)
+        val migliore = ValutatoreAzioneEconomica.scegliMigliore(
+            statoGiornata, statoGiocatore, opzioni, 
+            sogliaScore = -10.0, sogliaSicurezza = 5, pesoRiserva = 0.0
         )
-        if (acquistoMiniPlancia != null) {
-            return AzioneGiocatore.BloccoAzioniSecondarie(listOf(acquistoMiniPlancia))
-        }
+        if (migliore is AzioneGiocatore.GiocaCartaRazza) return migliore
 
+        // 2. AZIONI SECONDARIE
+        val blocco = mutableListOf<AzioneSecondaria>()
+        
+        // L'avventato non paga debiti a meno di non essere ricchissimo (già gestito in precedenza)
+        
+        val addestramento = cercaAzioneAddestramento(g)
+        if (addestramento != null) blocco.add(addestramento)
+        
+        val acquisto = SelettoreMiniPlancia.suggerisciAcquisto(
+            statoGiornata, statoGiocatore, marginePostAcquisto = 0
+        )
+        if (acquisto != null && blocco.size < 2) blocco.add(acquisto)
+
+        if (blocco.isNotEmpty()) return AzioneGiocatore.BloccoAzioniSecondarie(blocco)
         return AzioneGiocatore.Passa
     }
 

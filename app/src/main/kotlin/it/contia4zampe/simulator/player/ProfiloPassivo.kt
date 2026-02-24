@@ -1,4 +1,3 @@
-/* FILE: src/main/kotlin/it/contia4zampe/simulator/player/ProfiloPassivo.kt */
 package it.contia4zampe.simulator.player
 
 import it.contia4zampe.simulator.engine.*
@@ -13,55 +12,42 @@ class ProfiloPassivo : PlayerProfile {
     ): AzioneGiocatore {
         val g = statoGiocatore.giocatore
 
-        // 1. Paga i debiti solo se proprio "gli avanzano" i soldi
-        if (g.debiti > 0 && g.doin >= 15) {
-            return AzioneGiocatore.BloccoAzioniSecondarie(listOf(AzioneSecondaria.PagaDebito))
-        }
-
-        // 2. Gioca una carta solo se ha un cuscinetto di soldi enorme (> 20 doin)
-        // e se la carta è un "affare" ovvio (soglia score alta)
-        if (g.doin > 20) {
-            val azioniPossibili = mutableListOf<AzioneGiocatore>(AzioneGiocatore.Passa)
-            for (carta in g.mano) {
-                for (r in 0 until g.plancia.righe.size) {
-                    if (g.plancia.puoOspitareTaglia(r, carta.taglia) && g.plancia.haSpazioInRiga(r)) {
-                        azioniPossibili.add(AzioneGiocatore.GiocaCartaRazza(carta, r, g.plancia.righe[r].size))
-                    }
-                }
-            }
-
-            // Parametri da "Pigro":
-            // sogliaScore = 20.0 (deve essere una carta bellissima per convincerlo)
-            // sogliaSicurezza = 18 (vuole restare con quasi tutti i soldi in tasca)
-            // pesoRiserva = 10.0 (se scende sotto i 18 doin, l'azione gli fa schifo subito)
+        // Il pigro valuta di giocare solo se ha più di 22 doin
+        if (g.doin > 22) {
+            val opzioni = generaGiocatePossibili(g)
+            
+            // Parametri "Inerzia":
+            // sogliaScore = 15.0 (deve essere costretto dalla convenienza)
+            // sogliaSicurezza = 20 (non vuole scendere sotto le 20 monete)
+            // pesoRiserva = 10.0 (severissimo se scende sotto soglia)
             val scelta = ValutatoreAzioneEconomica.scegliMigliore(
-                statoGiornata, 
-                statoGiocatore, 
-                azioniPossibili, 
-                sogliaScore = 20.0, 
-                sogliaSicurezza = 18, 
-                pesoRiserva = 10.0
+                statoGiornata, statoGiocatore, opzioni, 
+                sogliaScore = 15.0, sogliaSicurezza = 20, pesoRiserva = 10.0
             )
             
             if (scelta is AzioneGiocatore.GiocaCartaRazza) return scelta
         }
 
-        // 3. Se non è ricchissimo o non ha carte stupende, passa senza pensarci
+        // Unica azione secondaria permessa: pagare debiti se è pieno di soldi
+        if (g.debiti > 0 && g.doin > 15) {
+            return AzioneGiocatore.BloccoAzioniSecondarie(listOf(AzioneSecondaria.PagaDebito))
+        }
+
+        // Altrimenti passa. Non addestra, non compra plance extra.
         return AzioneGiocatore.Passa
     }
 
     override fun decidiGestioneCucciolo(sg: StatoGiocatoreGiornata, cucciolo: Cane): SceltaCucciolo {
-        // Troppa fatica farli crescere: vende tutto subito per fare cassa
+        // Vende sempre per semplicità
         return SceltaCucciolo.VENDI
     }
 
     override fun scegliCartaDalMercato(giocatore: StatoGiocatoreGiornata, mercato: List<CartaRazza>): CartaRazza {
-        // Prende la prima che vede, non guarda nemmeno le statistiche
         return mercato.first()
     }
 
     override fun vuoleDichiarareAccoppiamento(sg: StatoGiocatoreGiornata, carta: CartaRazza): Boolean {
-        // Troppo rischio di upkeep: non accoppia mai
+        // Non ha voglia di gestire le nascite
         return false
     }
 }
