@@ -30,7 +30,12 @@ class ProfiloPrudenteBase : PlayerProfile {
         }
 
         // Prudente: accetta solo giocate con score chiaramente positivo.
-        val sceltaPrincipale = ValutatoreAzioneEconomica.scegliMigliore(statoGiornata, statoGiocatore, azioniPossibili, sogliaScore = -2.0)
+        val sceltaPrincipale = ValutatoreAzioneEconomica.scegliMigliore(
+            statoGiornata, statoGiocatore, azioniPossibili, 
+            sogliaScore = 5.0, 
+            sogliaSicurezza = 15,  // Vuole sempre 15 doin in tasca
+            pesoRiserva = 4.0      // Se scende sotto i 15, ogni doin in meno vale -4 nello score
+        )
         if (sceltaPrincipale !is AzioneGiocatore.Passa) {
             return sceltaPrincipale
         }

@@ -22,7 +22,12 @@ class ProfiloAvventato : PlayerProfile {
             }
         }
 
-        val miglioreAzione = ValutatoreAzioneEconomica.scegliMigliore(statoGiornata, statoGiocatore, azioniPossibili, sogliaScore = -4.0)
+        val miglioreAzione = ValutatoreAzioneEconomica.scegliMigliore(
+                statoGiornata, statoGiocatore, azioniPossibili, 
+                sogliaScore = -10.0, 
+                sogliaSicurezza = 5,   // Gli bastano 5 doin per star tranquillo
+                pesoRiserva = 0.0      // Non gliene frega nulla se scende sotto la soglia
+            )
         if (miglioreAzione is AzioneGiocatore.GiocaCartaRazza) {
             return miglioreAzione
         }

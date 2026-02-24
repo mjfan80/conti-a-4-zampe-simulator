@@ -29,7 +29,12 @@ class ProfiloCostruttore : PlayerProfile {
             }
         }
 
-        val miglioreAzione = ValutatoreAzioneEconomica.scegliMigliore(statoGiornata, statoGiocatore, azioniPossibili, sogliaScore = 0.5)
+        val miglioreAzione = ValutatoreAzioneEconomica.scegliMigliore(
+            statoGiornata, statoGiocatore, azioniPossibili, 
+            sogliaScore = 1.0,
+            sogliaSicurezza = 10,  // Vuole sempre 15 doin in tasca
+            pesoRiserva = 1.0      // Se scende sotto i 15, ogni doin in meno vale -4 nello score
+        )
         if (miglioreAzione is AzioneGiocatore.GiocaCartaRazza) {
             return miglioreAzione
         }

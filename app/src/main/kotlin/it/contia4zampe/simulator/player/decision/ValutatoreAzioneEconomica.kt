@@ -1,17 +1,14 @@
+/* FILE COMPLETO: src/main/kotlin/it/contia4zampe/simulator/player/decision/ValutatoreAzioneEconomica.kt */
+
 package it.contia4zampe.simulator.player.decision
 
 import it.contia4zampe.simulator.engine.StatoGiocatoreGiornata
 import it.contia4zampe.simulator.engine.StatoGiornata
-import it.contia4zampe.simulator.model.Cane
-import it.contia4zampe.simulator.model.CartaRazza
-import it.contia4zampe.simulator.model.Giocatore
-import it.contia4zampe.simulator.model.PlanciaGiocatore
-import it.contia4zampe.simulator.model.TipoEffettoEvento
+import it.contia4zampe.simulator.model.*
 import it.contia4zampe.simulator.player.AzioneGiocatore
-import it.contia4zampe.simulator.rules.applicaPopolamentoCarteNuove
-import it.contia4zampe.simulator.rules.applicaRenditaNetta
-import it.contia4zampe.simulator.rules.calcolaUpkeep
+import it.contia4zampe.simulator.rules.*
 
+// Struttura per contenere i risultati della valutazione
 data class EsitoValutazioneEconomica(
     val azione: AzioneGiocatore,
     val score: Double,
@@ -21,122 +18,146 @@ data class EsitoValutazioneEconomica(
 
 object ValutatoreAzioneEconomica {
 
+    /**
+     * FUNZIONE DI VALUTAZIONE: Simula l'impatto di un'azione sulla plancia
+     */
     fun valuta(
         statoGiornata: StatoGiornata,
         statoGiocatore: StatoGiocatoreGiornata,
-        azione: AzioneGiocatore
+        azione: AzioneGiocatore,
+        sogliaSicurezza: Int,  // Quanti doin il profilo vuole che restino
+        pesoRiserva: Double    // Quanto è grave scendere sotto la soglia (0 = fregatene, 5 = gravissimo)
     ): EsitoValutazioneEconomica {
         val giocatore = statoGiocatore.giocatore
         val evento = statoGiornata.eventoAttivo
 
-        val costoAzione = when (azione) {
-            is AzioneGiocatore.GiocaCartaRazza -> costoCartaConEvento(azione.carta, evento)
-            AzioneGiocatore.Passa -> 0
-            else -> Int.MAX_VALUE
+        // 1. CALCOLO COSTO REALE (tenendo conto degli eventi)
+        var costoAzione = 0
+        if (azione is AzioneGiocatore.GiocaCartaRazza) {
+            costoAzione = costoCartaConEvento(azione.carta, evento)
+        } else {
+            costoAzione = 0 
         }
 
-        if (costoAzione == Int.MAX_VALUE || costoAzione > giocatore.doin) {
-            return EsitoValutazioneEconomica(azione, score = -1_000.0, debitiAttesi = Int.MAX_VALUE, doinResiduiPostCosto = -1)
+        // Se l'azione costa più di quanto ho, restituisco uno score pessimo
+        if (costoAzione > giocatore.doin) {
+            return EsitoValutazioneEconomica(azione, score = -1000.0, debitiAttesi = 99, doinResiduiPostCosto = -1)
         }
 
+        // 2. CLONAZIONE (Creo un mondo virtuale per fare i test)
         val copia = clonaGiocatore(giocatore)
-        when (azione) {
-            is AzioneGiocatore.GiocaCartaRazza -> {
-                copia.doin -= costoAzione
-                copia.plancia.righe[azione.rigaDestinazione].add(azione.carta.copy(cani = azione.carta.cani.map { it.copy() }.toMutableList()))
-            }
-            AzioneGiocatore.Passa -> Unit
-            else -> Unit
+        var puntiVittoriaCarta = 0.0
+        var renditaCarta = 0.0
+
+        if (azione is AzioneGiocatore.GiocaCartaRazza) {
+            copia.doin -= costoAzione
+            // Metto la carta sulla plancia virtuale
+            val cartaCopia = azione.carta.copy(cani = azione.carta.cani.map { it.copy() }.toMutableList())
+            copia.plancia.righe[azione.rigaDestinazione].add(cartaCopia)
+            
+            puntiVittoriaCarta = cartaCopia.puntiBase.toDouble()
+            renditaCarta = cartaMessaDettaglio(cartaCopia).rendita.toDouble() // Usiamo la rendita reale della carta
         }
 
-        val doinResiduiPostCosto = copia.doin
-
-        val upkeepCorrente = calcolaUpkeep(copia, evento).costoTotale
-        val debitiCorrente = (upkeepCorrente - copia.doin).coerceAtLeast(0)
-        val doinDopoUpkeepCorrente = (copia.doin - upkeepCorrente).coerceAtLeast(0)
-
-        copia.doin = doinDopoUpkeepCorrente
-        copia.debiti += debitiCorrente
-
-        // Stima sostenibilità prossima giornata, riusando regole economiche esistenti.
-        applicaRenditaNetta(copia)
-        applicaPopolamentoCarteNuove(copia)
-
-        val upkeepSuccessivo = calcolaUpkeep(copia).costoTotale
-        val debitiSuccessivo = (upkeepSuccessivo - copia.doin).coerceAtLeast(0)
-        val margineUpkeepCorrente = doinResiduiPostCosto - upkeepCorrente
-        val margineUpkeepSuccessivo = copia.doin - upkeepSuccessivo
-
-        val debitiAttesi = debitiCorrente + debitiSuccessivo
-
-        val carteInPlanciaPrima = giocatore.plancia.slotOccupatiTotali()
-        val bonusEspansioneEarly = if (azione is AzioneGiocatore.GiocaCartaRazza && carteInPlanciaPrima <= 2) 16.0 else 0.0
-        val bonusStrategicoCarta = when (azione) {
-            is AzioneGiocatore.GiocaCartaRazza -> (azione.carta.rendita * 4.0) + (azione.carta.puntiBase * 1.5)
-            else -> 0.0
+        // 3. LA TUA LOGICA: CUSCINETTO DI SICUREZZA
+        val doinResidui = copia.doin
+        var penalitaPoverta = 0.0
+        if (doinResidui < sogliaSicurezza) {
+            val mancanza = sogliaSicurezza - doinResidui
+            penalitaPoverta = mancanza * pesoRiserva
         }
-        val malusPassaEarly = if (azione is AzioneGiocatore.Passa && giocatore.mano.isNotEmpty() && carteInPlanciaPrima <= 2) 6.0 else 0.0
 
-        val score =
-            (doinResiduiPostCosto * 0.7) +
-                (margineUpkeepCorrente * 2.0) +
-                (margineUpkeepSuccessivo * 1.6) -
-                (debitiAttesi * 8.0) +
-                bonusEspansioneEarly +
-                bonusStrategicoCarta -
-                malusPassaEarly
+        // 4. SIMULAZIONE DEL FUTURO (OGGI E DOMANI)
+        // Calcolo i debiti che farei STASERA
+        val upkeepStasera = calcolaUpkeep(copia, evento).costoTotale
+        val debitiOggi = (upkeepStasera - copia.doin).coerceAtLeast(0)
+        
+        // Simulo l'avanzamento alla giornata di domani
+        copia.doin = (copia.doin - upkeepStasera).coerceAtLeast(0) // Paga upkeep stasera
+        applicaRenditaNetta(copia)        // Incassa rendita domani mattina
+        applicaPopolamentoCarteNuove(copia) // Nascono cani domani mattina
+        
+        // Calcolo i debiti che farei DOMANI SERA
+        val upkeepDomani = calcolaUpkeep(copia).costoTotale
+        val debitiDomani = (upkeepDomani - copia.doin).coerceAtLeast(0)
+        
+        val debitiTotaliAttesi = debitiOggi + debitiDomani
 
-        return EsitoValutazioneEconomica(
-            azione = azione,
-            score = score,
-            debitiAttesi = debitiAttesi,
-            doinResiduiPostCosto = doinResiduiPostCosto
-        )
+        // 5. CALCOLO SCORE FINALE
+        val slotOccupati = giocatore.plancia.slotOccupatiTotali()
+        val bonusEspansione = (16 - slotOccupati) * 2.0 // Più slot sono vuoti, più voglio giocare
+        
+        // Se ho molti soldi (> 20), ho meno paura del debito
+        val fattorePauraDebito = if (giocatore.doin > 20) 4.0 else 12.0
+
+        val score = (doinResidui * 0.5) + 
+                    (puntiVittoriaCarta * 10.0) + // I PV sono molto pesanti!
+                    (renditaCarta * 5.0) + 
+                    bonusEspansione - 
+                    (debitiTotaliAttesi * fattorePauraDebito) - 
+                    penalitaPoverta
+
+        return EsitoValutazioneEconomica(azione, score, debitiTotaliAttesi, doinResidui)
     }
 
+    /**
+     * SCEGLI MIGLIORE: Valuta tutte le opzioni e prende la migliore sopra la soglia
+     */
     fun scegliMigliore(
         statoGiornata: StatoGiornata,
         statoGiocatore: StatoGiocatoreGiornata,
         azioni: List<AzioneGiocatore>,
-        sogliaScore: Double
+        sogliaScore: Double,
+        sogliaSicurezza: Int,
+        pesoRiserva: Double
     ): AzioneGiocatore {
-        val migliore = azioni
-            .map { valuta(statoGiornata, statoGiocatore, it) }
-            .maxByOrNull { it.score }
-            ?: return AzioneGiocatore.Passa
+        
+        var miglioreAzione: AzioneGiocatore = AzioneGiocatore.Passa
+        var punteggioMigliore = -999.0
 
-        return if (migliore.score >= sogliaScore) migliore.azione else AzioneGiocatore.Passa
+        for (azione in azioni) {
+            val esito = valuta(statoGiornata, statoGiocatore, azione, sogliaSicurezza, pesoRiserva)
+            if (esito.score > punteggioMigliore) {
+                punteggioMigliore = esito.score
+                miglioreAzione = azione
+            }
+        }
+
+        // Se l'azione migliore non raggiunge la soglia del profilo, preferisco passare
+        if (punteggioMigliore >= sogliaScore) {
+            return miglioreAzione
+        } else {
+            return AzioneGiocatore.Passa
+        }
     }
 
-    private fun costoCartaConEvento(carta: CartaRazza, evento: it.contia4zampe.simulator.model.CartaEvento?): Int {
+    // --- FUNZIONI HELPER (SUPPORTO) ---
+
+    private fun cartaMessaDettaglio(c: CartaRazza) = c // Helper per leggere dati carta
+
+    private fun costoCartaConEvento(carta: CartaRazza, evento: CartaEvento?): Int {
         var costo = carta.costo
-        when (evento?.tipo) {
-            TipoEffettoEvento.MODIFICA_COSTO_RAZZA_TUTTE -> costo += evento.variazione
-            TipoEffettoEvento.MODIFICA_COSTO_RAZZA_TAGLIA -> {
-                if (carta.taglia == evento.tagliaTarget) {
-                    costo += evento.variazione
-                } else if (carta.taglia == evento.tagliaTargetSecondaria) {
-                    costo += evento.variazioneSecondaria
-                }
-            }
-            else -> Unit
+        if (evento?.tipo == TipoEffettoEvento.MODIFICA_COSTO_RAZZA_TUTTE) {
+            costo += evento.variazione
+        } else if (evento?.tipo == TipoEffettoEvento.MODIFICA_COSTO_RAZZA_TAGLIA) {
+            if (carta.taglia == evento.tagliaTarget) costo += evento.variazione
+            else if (carta.taglia == evento.tagliaTargetSecondaria) costo += evento.variazioneSecondaria
         }
-        return costo.coerceAtLeast(0)
+        return if (costo < 0) 0 else costo
     }
 
     private fun clonaGiocatore(originale: Giocatore): Giocatore {
-        val righeCopia = originale.plancia.righe.map { rigaOriginale ->
-            rigaOriginale.map { carta ->
-                carta.copy(cani = carta.cani.map { cane -> cane.copy() }.toMutableList())
+        val righeCopia = originale.plancia.righe.map { riga ->
+            riga.map { carta ->
+                carta.copy(cani = carta.cani.map { it.copy() }.toMutableList())
             }.toMutableList()
         }
-
         return Giocatore(
             id = originale.id,
             doin = originale.doin,
             debiti = originale.debiti,
             plancia = PlanciaGiocatore(righeCopia),
-            mano = originale.mano.map { carta -> carta.copy(cani = carta.cani.map(Cane::copy).toMutableList()) }.toMutableList()
+            mano = originale.mano.toMutableList()
         )
     }
 }

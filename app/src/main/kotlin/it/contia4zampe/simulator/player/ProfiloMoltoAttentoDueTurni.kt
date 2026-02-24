@@ -36,7 +36,12 @@ class ProfiloMoltoAttentoDueTurni(
             }
         }
 
-        val sceltaPrincipale = ValutatoreAzioneEconomica.scegliMigliore(statoGiornata, statoGiocatore, azioniPossibili, sogliaScore = 2.5)
+        val sceltaPrincipale = ValutatoreAzioneEconomica.scegliMigliore(
+            statoGiornata, statoGiocatore, azioniPossibili, 
+            sogliaScore = 7.0, 
+            sogliaSicurezza = 15,  // Vuole sempre 15 doin in tasca
+            pesoRiserva = 4.0      // Se scende sotto i 15, ogni doin in meno vale -4 nello score
+        )
         if (sceltaPrincipale !is AzioneGiocatore.Passa) {
             return sceltaPrincipale
         }
