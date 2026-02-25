@@ -102,7 +102,7 @@ object ValutatoreAzioneEconomica {
         var migliore: AzioneGiocatore = AzioneGiocatore.Passa
         var punteggioMax = -20000.0
         for (azione in azioni) {
-            val esito = valuta(statoGiornata, statoGiocatore, action = azione, sogliaSicurezza, pesoRiserva)
+            val esito = valuta(statoGiornata, statoGiocatore, azione, sogliaSicurezza, pesoRiserva)
             if (esito.score > punteggioMax) {
                 punteggioMax = esito.score
                 migliore = azione
