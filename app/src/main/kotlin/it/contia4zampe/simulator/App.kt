@@ -1,5 +1,3 @@
-/* FILE COMPLETO: src/main/kotlin/it/contia4zampe/simulator/App.kt */
-
 package it.contia4zampe.simulator
 
 import it.contia4zampe.simulator.engine.InMemorySimulationCollector
@@ -7,7 +5,7 @@ import it.contia4zampe.simulator.engine.PartitaEngine
 import it.contia4zampe.simulator.engine.SimulationConfig
 import it.contia4zampe.simulator.report.CsvReportExporter
 import it.contia4zampe.simulator.report.SimulationReportAggregator
-import it.contia4zampe.simulator.report.ProfileStatisticsAggregator
+import it.contia4zampe.simulator.report.ProfileStatisticsAggregator // <--- IMPORT
 import it.contia4zampe.simulator.player.*
 import java.io.File
 import java.io.FileOutputStream
@@ -82,19 +80,31 @@ fun main(args: Array<String>) {
     val aggregator = SimulationReportAggregator()
     val summary = aggregator.aggregate(result, collector.dayEndSnapshots, collector.decisionEvents)
 
-    // 2. Aggregazione per Profilo
+    // 2. Aggregazione per Profilo (NUOVA)
     val profileAggregator = ProfileStatisticsAggregator()
     val profileStats = profileAggregator.aggregate(result)
 
     // 3. Esportazione CSV
     val runId = "run-${Instant.now().toEpochMilli()}"
     val exporter = CsvReportExporter()
+
+    // Passiamo anche profileStats all'exporter
     val exported = exporter.export(summary, profileStats, result.partite, outputDir, runId)
 
     println("\nSimulazione completata.")
     println("Report CSV generati in: ${outputDir.absolutePath}")
     println("- ${exported.profileStatsFile.name} (Statistiche per Profilo)")
 
+
+    println("Simulazione completata.")
+    println("Report CSV generati in: ${outputDir.absolutePath}")
+    println("- ${exported.profileStatsFile.name} (Statistiche per Profilo)")
+
+    // Piccola anteprima in console
+    println("\n--- RISULTATI PER PROFILO ---")
+    profileStats.forEach {
+        println("${it.profileName.padEnd(20)} | WinRate: ${it.winRate}% | Avg PV: ${it.avgPoints} | Avg Debiti: ${it.avgDebts}")
+    }
     // Piccola anteprima in console
     println("\n--- RISULTATI PER PROFILO ---")
     profileStats.forEach {

@@ -40,20 +40,9 @@ class ProfiloCostruttore : PlayerProfile {
         return AzioneGiocatore.Passa
     }
 
-    override fun vuoleDichiarareAccoppiamento(
-        sg: StatoGiocatoreGiornata,
-        carta: CartaRazza
-    ): Boolean {
-
-        val g = sg.giocatore
-        val upkeepAttuale = sg.calcolaUpkeepAttuale()
-        val margineOggi = g.doin - upkeepAttuale
-
-        if (g.debiti >= 6) return false
-
-        // Se oggi è completamente senza margine, evita
-        if (margineOggi < 1) return false
-
+    override fun vuoleDichiarareAccoppiamento(sg: StatoGiocatoreGiornata, carta: CartaRazza): Boolean {
+        // Accoppia quasi sempre, i cuccioli sono la vita del canile
+        if (sg.giocatore.debiti > 8) return false
         return true
     }
 
@@ -62,13 +51,5 @@ class ProfiloCostruttore : PlayerProfile {
         return SceltaCucciolo.TRASFORMA_IN_ADULTO
     }
 
-    override fun scegliCartaDalMercato(
-        giocatore: StatoGiocatoreGiornata,
-        mercato: List<CartaRazza>
-    ): CartaRazza {
-
-        return mercato.maxByOrNull {
-            it.puntiBase + (it.rendita * 2)
-        } ?: mercato.first()
-    }
+    override fun scegliCartaDalMercato(giocatore: StatoGiocatoreGiornata, mercato: List<CartaRazza>) = mercato.first()
 }

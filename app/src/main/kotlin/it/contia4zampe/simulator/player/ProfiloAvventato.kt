@@ -19,27 +19,14 @@ class ProfiloAvventato : PlayerProfile {
         val g = statoGiocatore.giocatore
 
         // 1. REAZIONE AL BLOCCO: Se ho debiti e sono povero, VENDI subito per sbloccare l'economia
-
-
-        if (g.debiti > 6 && g.doin < 2) {
+        if (g.debiti > 0 && g.doin < 2) {
             val vendita = trovaCanePerEmergenza(g)
             if (vendita != null) return AzioneGiocatore.VendiCani(listOf(vendita))
         }
 
-        // 2. PAGAMENTO DEBITI:
-        val upkeepAttuale = statoGiocatore.calcolaUpkeepAttuale()
-
-        if (g.debiti >= 6) {
-            return AzioneGiocatore.BloccoAzioniSecondarie(
-                listOf(AzioneSecondaria.PagaDebito)
-            )
-        }
-
-// Se l'upkeep attuale è coperto con poco margine, non paga
-        if (g.debiti > 0 && g.doin - upkeepAttuale > 4) {
-            return AzioneGiocatore.BloccoAzioniSecondarie(
-                listOf(AzioneSecondaria.PagaDebito)
-            )
+        // 2. PAGAMENTO DEBITI: Più pragmatico, paga se ha almeno 5 doin
+        if (g.debiti > 0 && g.doin >= 5) {
+            return AzioneGiocatore.BloccoAzioniSecondarie(listOf(AzioneSecondaria.PagaDebito))
         }
 
         // 3. AZIONE PRINCIPALE: Espansione quasi forzata
@@ -49,7 +36,7 @@ class ProfiloAvventato : PlayerProfile {
             statoGiornata, statoGiocatore, opzioni,
             soglia, // alta tolleranza al rischio ma meno a partita avanzata
             sogliaSicurezza = 2,    // Gli bastano 2 doin per "sentirsi a posto"
-            pesoRiserva = 1.2
+            pesoRiserva = 0.5
         )
         if (migliore is AzioneGiocatore.GiocaCartaRazza) return migliore
 
