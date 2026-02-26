@@ -3,32 +3,42 @@ package it.contia4zampe.simulator.player
 import it.contia4zampe.simulator.engine.*
 import it.contia4zampe.simulator.model.*
 import it.contia4zampe.simulator.player.decision.*
+import it.contia4zampe.simulator.rules.calcolaRenditaNetta
+import it.contia4zampe.simulator.rules.calcolaUpkeep
 
 class ProfiloPrudenteBase : PlayerProfile {
 
     override fun decidiAzione(statoGiornata: StatoGiornata, statoGiocatore: StatoGiocatoreGiornata): AzioneGiocatore {
         val g = statoGiocatore.giocatore
 
-        // 1. RIGORE FINANZIARIO: Paga debiti appena possibile
+        // 1. SOPRAVVIVENZA: Se sto per andare in debito stasera, vendi!
+        val emergenza = controllaUrgenzaVendita(statoGiocatore, statoGiornata)
+        if (emergenza != null) return emergenza
+
+        // 2. RIGORE: Paga debiti se ne hai
         if (g.debiti > 0 && g.doin >= 2) {
             return AzioneGiocatore.BloccoAzioniSecondarie(listOf(AzioneSecondaria.PagaDebito))
         }
 
-        // 2. AZIONE PRINCIPALE: Gioca carte se hanno un senso (Score 0.0)
+        // 3. AZIONE PRINCIPALE: Basata sul MARGINE
+        val rendita = calcolaRenditaNetta(g)
+        val upkeep = calcolaUpkeep(g, statoGiornata.eventoAttivo).costoTotale
+        val margine = rendita - upkeep
+
+        // Se il margine è buono (>2), il prudente abbassa la guardia sulla scorta di doin
+        val sicurezzaRichiesta = if (margine >= 2) 5 else 12
+
         val opzioni = generaGiocatePossibili(g)
         val scelta = ValutatoreAzioneEconomica.scegliMigliore(
             statoGiornata, statoGiocatore, opzioni,
-            sogliaScore = 0.0,  // Accetta giocate "in pareggio", non aspetta l'occasione perfetta
-            sogliaSicurezza = 8, // Abbassata da 15 a 8 doin
-            pesoRiserva = 3.0
+            sogliaScore = 2.0, sogliaSicurezza = sicurezzaRichiesta, pesoRiserva = 4.0
         )
         if (scelta is AzioneGiocatore.GiocaCartaRazza) return scelta
 
-        // 3. AZIONI SECONDARIE
+        // 4. AZIONI SECONDARIE
         val blocco = mutableListOf<AzioneSecondaria>()
-
         val addestramento = cercaAzioneAddestramento(g)
-        if (addestramento != null && g.doin > 8) blocco.add(addestramento)
+        if (addestramento != null && g.doin > sicurezzaRichiesta) blocco.add(addestramento)
 
         val acquisto = SelettoreMiniPlancia.suggerisciAcquisto(statoGiornata, statoGiocatore, 4)
         if (acquisto != null && blocco.size < 2) blocco.add(acquisto)
@@ -37,18 +47,4 @@ class ProfiloPrudenteBase : PlayerProfile {
 
         return AzioneGiocatore.Passa
     }
-
-    override fun vuoleDichiarareAccoppiamento(sg: StatoGiocatoreGiornata, carta: CartaRazza): Boolean {
-        // Il prudente accoppia se non ha troppi debiti (max 2)
-        if (sg.giocatore.debiti > 2) return false
-        return true
-    }
-
-    override fun decidiGestioneCucciolo(sg: StatoGiocatoreGiornata, cucciolo: Cane): SceltaCucciolo {
-        // Vende per sicurezza se ha debiti, altrimenti fa crescere
-        if (sg.giocatore.debiti > 0) return SceltaCucciolo.VENDI
-        return SceltaCucciolo.TRASFORMA_IN_ADULTO
-    }
-
-    override fun scegliCartaDalMercato(giocatore: StatoGiocatoreGiornata, mercato: List<CartaRazza>) = mercato.minByOrNull { it.costo } ?: mercato.first()
 }

@@ -1,3 +1,5 @@
+/* FILE COMPLETO: src/main/kotlin/it/contia4zampe/simulator/player/decision/ValutatoreAzioneEconomica.kt */
+
 package it.contia4zampe.simulator.player.decision
 
 import it.contia4zampe.simulator.engine.StatoGiocatoreGiornata
@@ -15,9 +17,6 @@ data class EsitoValutazioneEconomica(
 
 object ValutatoreAzioneEconomica {
 
-    /**
-     * Valuta una singola azione e restituisce uno score numerico.
-     */
     fun valuta(
         statoGiornata: StatoGiornata,
         statoGiocatore: StatoGiocatoreGiornata,
@@ -28,75 +27,100 @@ object ValutatoreAzioneEconomica {
         val giocatore = statoGiocatore.giocatore
         val evento = statoGiornata.eventoAttivo
 
-        // 1. Calcolo Costo Reale
+        // 1. COSTO AZIONE
         var costoAzione = 0
         if (azione is AzioneGiocatore.GiocaCartaRazza) {
             costoAzione = costoCartaConEvento(azione.carta, evento)
         }
 
-        // Se non ho i soldi base per la carta, l'azione è impossibile
-        if (costoAzione > giocatore.doin) {
-            return EsitoValutazioneEconomica(azione, -10000.0, 99, -1)
-        }
+        // Check base: ho i soldi per comprarla?
+        if (costoAzione > giocatore.doin) return EsitoValutazioneEconomica(azione, -10000.0, 99, -1)
 
-        // 2. Simulazione in un "Mondo Virtuale"
+        // 2. MONDO VIRTUALE
         val copia = clonaGiocatore(giocatore)
         var pvCarta = 0.0
-        var renditaCarta = 0.0
+
+        // Variabile per tracciare la rendita che la NUOVA carta produrrà a regime (con i cani sopra)
+        var renditaLatenteNuovaCarta = 0.0
 
         if (azione is AzioneGiocatore.GiocaCartaRazza) {
             copia.doin -= costoAzione
             val cartaMessa = azione.carta.copy(cani = azione.carta.cani.map { it.copy() }.toMutableList())
             copia.plancia.righe[azione.rigaDestinazione].add(cartaMessa)
             pvCarta = cartaMessa.puntiBase.toDouble()
-            renditaCarta = cartaMessa.rendita.toDouble()
+
+            // FIX RENDITA: Calcoliamo quanto varrà questa carta quando avrà i 2 cani sopra (2 cani * rendita base)
+            // Questo serve perché domani mattina sarà ancora vuota, ma noi investiamo per il futuro.
+            renditaLatenteNuovaCarta = (cartaMessa.rendita * 2).toDouble()
         }
 
         val doinDopoAcquisto = copia.doin
 
-        // 3. Simulazione Futuro (Stasera e Domani)
+        // 3. SIMULAZIONE FUTURO (Stasera e Domani Mattina)
         val upkeepStasera = calcolaUpkeep(copia, evento).costoTotale
         val debitiOggi = (upkeepStasera - copia.doin).coerceAtLeast(0)
 
+        // Pago upkeep stasera
         copia.doin = (copia.doin - upkeepStasera).coerceAtLeast(0)
-        val renditaMattina = calcolaRenditaNetta(copia)
-        applicaRenditaNetta(copia)
+
+        // Calcolo quanto guadagno DOMANI MATTINA (Incasso effettivo)
+        val cassaPrima = copia.doin
+        applicaRenditaNetta(copia)          // Rendita cani esistenti
+        applicaEffettiInizioGiornata(copia) // Effetti speciali (es. Labrador +1 funziona anche senza cani)
+        val cassaDopo = copia.doin
+
+        val renditaRealeDomani = (cassaDopo - cassaPrima).toDouble()
+
+        // Ora arrivano i cani sulla carta nuova (ma la rendita l'abbiamo già incassata prima!)
         applicaPopolamentoCarteNuove(copia)
 
         val upkeepDomani = calcolaUpkeep(copia).costoTotale
         val debitiDomani = (upkeepDomani - copia.doin).coerceAtLeast(0)
-        val debitiTotaliSimulati = debitiOggi + debitiDomani
+        val debitiTotali = debitiOggi + debitiDomani
 
-        // 4. Calcolo Pesi e Malus
+        // 4. PESI DINAMICI (Time-Dependent)
+        // FIX GIORNATE: Usiamo 16.0 fisso o maxGiornateEvento + 1
+        val maxGiornate = (statoGiornata.maxGiornateEvento + 1).toDouble()
+        val progressoPartita = (statoGiornata.numero.toDouble() / maxGiornate).coerceIn(0.0, 1.0)
 
-        // Malus Sostenibilità: se l'upkeep è troppo alto rispetto alla rendita
-        var malusSostenibilita = 0.0
-        if (upkeepDomani > (renditaMattina + 2)) {
-            malusSostenibilita = (upkeepDomani - renditaMattina) * 10.0
+        // Peso Rendita: Scende col tempo (Inizio: 14.0 -> Fine: 4.0)
+        val pesoRenditaDinamico = 14.0 - (progressoPartita * 10.0)
+
+        // Peso PV: Sale col tempo (Inizio: 2.0 -> Fine: 16.0)
+        val pesoPVDinamico = 2.0 + (progressoPartita * 14.0)
+
+        // 5. ALTRI FATTORI
+
+        // Bonus ROI Cuccioli (Soldi futuri)
+        val numeroCuccioli = copia.plancia.righe.flatten().sumOf { c -> c.cani.count { it.stato == StatoCane.CUCCIOLO } }
+        val bonusROI = numeroCuccioli * 6.0
+
+        // Malus Debito
+        val malusDebitoEsistente = giocatore.debiti * 30.0
+        val fattorePauraDebitoFuturo = if (giocatore.doin > 25) 15.0 else 35.0
+
+        // Penalità Riserva
+        var penalitaRiserva = 0.0
+        if (doinDopoAcquisto < sogliaSicurezza) {
+            penalitaRiserva = (sogliaSicurezza - doinDopoAcquisto) * pesoRiserva
         }
 
-        // Malus Debito: Pesante per tutti, drammatico per i poveri
-        val malusDebitoEsistente = giocatore.debiti * 30.0
-        val fattorePauraDebitoFuturo = if (giocatore.doin > 25) 15.0 else 30.0
+        // 6. SCORE FINALE
+        // Sommiamo Rendita Reale (domani) + Rendita Latente (dopodomani, grazie ai nuovi cani)
+        val renditaTotaleStimata = renditaRealeDomani + renditaLatenteNuovaCarta
 
-        val bonusEspansione = (16 - copia.plancia.slotOccupatiTotali()) * 0.5
-
-        // 5. Score Finale
         val score = (doinDopoAcquisto * 1.0) +
-                (pvCarta * 8.0) +
-                (renditaCarta * 12.0) +
-                bonusEspansione -
-                (debitiTotaliSimulati * fattorePauraDebitoFuturo) -
+                (pvCarta * pesoPVDinamico) +
+                (renditaTotaleStimata * pesoRenditaDinamico) + // <--- FIX APPLICATO QUI
+                bonusROI +
+                (16 - copia.plancia.slotOccupatiTotali()) * 0.5 -
+                (debitiTotali * fattorePauraDebitoFuturo) -
                 malusDebitoEsistente -
-                ((sogliaSicurezza - doinDopoAcquisto).coerceAtLeast(0) * pesoRiserva) -
-                malusSostenibilita
+                penalitaRiserva
 
-        return EsitoValutazioneEconomica(azione, score, debitiTotaliSimulati, doinDopoAcquisto)
+        return EsitoValutazioneEconomica(azione, score, debitiTotali, doinDopoAcquisto)
     }
 
-    /**
-     * Cicla su tutte le azioni possibili e sceglie quella con lo score più alto.
-     */
     fun scegliMigliore(
         statoGiornata: StatoGiornata,
         statoGiocatore: StatoGiocatoreGiornata,
@@ -105,16 +129,16 @@ object ValutatoreAzioneEconomica {
         sogliaSicurezza: Int,
         pesoRiserva: Double
     ): AzioneGiocatore {
-        var miglioreAzione: AzioneGiocatore = AzioneGiocatore.Passa
-        var punteggioMigliore = -20000.0
+        var migliore: AzioneGiocatore = AzioneGiocatore.Passa
+        var punteggioMax = -20000.0
         for (azioneCorrente in azioni) {
             val esito = valuta(statoGiornata, statoGiocatore, azioneCorrente, sogliaSicurezza, pesoRiserva)
-            if (esito.score > punteggioMigliore) {
-                punteggioMigliore = esito.score
-                miglioreAzione = azioneCorrente
+            if (esito.score > punteggioMax) {
+                punteggioMax = esito.score
+                migliore = azioneCorrente
             }
         }
-        return if (punteggioMigliore >= sogliaScore) miglioreAzione else AzioneGiocatore.Passa
+        return if (punteggioMax >= sogliaScore) migliore else AzioneGiocatore.Passa
     }
 
     private fun costoCartaConEvento(carta: CartaRazza, evento: CartaEvento?): Int {

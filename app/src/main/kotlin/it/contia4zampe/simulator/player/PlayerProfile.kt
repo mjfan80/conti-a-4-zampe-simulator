@@ -3,116 +3,42 @@ package it.contia4zampe.simulator.player
 import it.contia4zampe.simulator.engine.StatoGiornata
 import it.contia4zampe.simulator.engine.StatoGiocatoreGiornata
 import it.contia4zampe.simulator.model.*
-import it.contia4zampe.simulator.player.AzioneGiocatore
-import it.contia4zampe.simulator.model.CartaRazza
+import it.contia4zampe.simulator.rules.calcolaRenditaNetta
+import it.contia4zampe.simulator.rules.calcolaUpkeep
 
 interface PlayerProfile {
 
-    // Questo rimane astratto: ogni profilo DEVE decidere cosa fare nel turno
-    fun decidiAzione(
-        statoGiornata: StatoGiornata,
-        statoGiocatore: StatoGiocatoreGiornata
-    ): AzioneGiocatore
+    fun decidiAzione(statoGiornata: StatoGiornata, statoGiocatore: StatoGiocatoreGiornata): AzioneGiocatore
 
-    // LOGICA DI DEFAULT: Valida per quasi tutti (Prudente, Avventato, ecc.)
     fun decidiGestioneCucciolo(sg: StatoGiocatoreGiornata, cucciolo: Cane): SceltaCucciolo {
-        val g = sg.giocatore
-        val upkeepAttuale = sg.calcolaUpkeepAttuale()
-        val upkeepFuturo = sg.calcolaUpkeepFuturo()
-
-        // Se sono sotto pressione economica, monetizzo subito il cucciolo.
-        if (g.debiti > 0 || g.doin <= upkeepAttuale || g.doin <= upkeepFuturo) {
-            return SceltaCucciolo.VENDI
-        }
-
-        // Se economicamente reggo, preferisco far crescere il cane.
+        if (sg.giocatore.debiti > 0) return SceltaCucciolo.VENDI
         return SceltaCucciolo.TRASFORMA_IN_ADULTO
     }
 
-    // LOGICA DI DEFAULT: Prendi la prima carta (o la più economica)
     fun scegliCartaDalMercato(giocatore: StatoGiocatoreGiornata, mercato: List<CartaRazza>): CartaRazza {
         return mercato.first()
     }
 
-    // LOGICA DI DEFAULT: Accoppia solo se sei in salute economica
     fun vuoleDichiarareAccoppiamento(sg: StatoGiocatoreGiornata, carta: CartaRazza): Boolean {
+        return sg.giocatore.debiti < 3 // Regola base di buon senso
+    }
+
+    // --- HELPER DI SOPRAVVIVENZA (Usati dai profili) ---
+
+    fun controllaUrgenzaVendita(sg: StatoGiocatoreGiornata, statoGiornata: StatoGiornata): AzioneGiocatore.VendiCani? {
         val g = sg.giocatore
-        return g.debiti == 0 && g.doin >= 15
-    }
+        val rendita = calcolaRenditaNetta(g)
+        val upkeep = calcolaUpkeep(g, statoGiornata.eventoAttivo).costoTotale
 
-    // FUNZIONE HELPER: Disponibile per tutti i profili senza doverla riscrivere
-    fun trovaCaneSacrificabile(g: Giocatore): DettaglioVendita? {
-        for (riga in g.plancia.righe) {
-            for (carta in riga) {
-                // Cerchiamo carte con almeno 3 cani per non farle collassare
-                if (carta.cani.size >= 3) {
-                    for (cane in carta.cani) {
-                        // Preferiamo vendere adulti semplici
-                        if (cane.stato == StatoCane.ADULTO) {
-                            return DettaglioVendita(carta, cane)
-                        }
-                    }
-                }
-            }
+        // Se stasera non posso pagare l'upkeep nemmeno con la rendita, devo vendere un cane ORA
+        if (g.doin + rendita < upkeep) {
+            val cane = trovaCanePerEmergenza(g)
+            if (cane != null) return AzioneGiocatore.VendiCani(listOf(cane))
         }
         return null
     }
-
-    fun cercaAzioneAddestramento(g: Giocatore): AzioneSecondaria.AddestraCane? {
-        for (riga in g.plancia.righe) {
-            for (carta in riga) {
-                // Contiamo tutti i tipi di adulti (regola dei 3)
-                val adultiTotali = carta.cani.count { 
-                    it.stato == StatoCane.ADULTO || 
-                    it.stato == StatoCane.ADULTO_ADDESTRATO || 
-                    it.stato == StatoCane.IN_ACCOPPIAMENTO || 
-                    it.stato == StatoCane.IN_ADDESTRAMENTO 
-                }
-                
-                val haSlotLibero = g.plancia.haSlotAddestramentoDisponibilePerCarta(carta)
-                val caneFisicoDisponibile = carta.cani.firstOrNull { it.stato == StatoCane.ADULTO }
-
-                if (adultiTotali >= 3 && haSlotLibero && caneFisicoDisponibile != null) {
-                    return AzioneSecondaria.AddestraCane(carta, caneFisicoDisponibile)
-                }
-            }
-        }
-        return null
-    }
-
-    /**
-     * Genera l'elenco di tutte le carte che il giocatore potrebbe legalmente 
-     * piazzare sulla sua plancia in questo momento.
-     */
-    fun generaGiocatePossibili(g: Giocatore): List<AzioneGiocatore> {
-        val lista = mutableListOf<AzioneGiocatore>()
-        
-        // Aggiungiamo sempre il "Passa" come opzione base
-        lista.add(AzioneGiocatore.Passa)
-        
-        // Cicliamo su ogni carta che abbiamo in mano
-        for (carta in g.mano) {
-            // Proviamo a vedere se sta in una delle 3 righe
-            for (indiceRiga in 0 until g.plancia.righe.size) {
-                // Se la riga accetta la taglia e ha ancora spazio...
-                if (g.plancia.puoOspitareTaglia(indiceRiga, carta.taglia) && g.plancia.haSpazioInRiga(indiceRiga)) {
-                    // ...aggiungiamo la giocata alle opzioni
-                    lista.add(
-                        AzioneGiocatore.GiocaCartaRazza(
-                            carta = carta,
-                            rigaDestinazione = indiceRiga,
-                            slotDestinazione = g.plancia.righe[indiceRiga].size
-                        )
-                    )
-                }
-            }
-        }
-        return lista
-    }
-
 
     fun trovaCanePerEmergenza(g: Giocatore): DettaglioVendita? {
-        // Cerchiamo il primo cane adulto (anche addestrato) per fare cassa subito
         for (riga in g.plancia.righe) {
             for (carta in riga) {
                 val cane = carta.cani.firstOrNull { it.stato == StatoCane.ADULTO || it.stato == StatoCane.ADULTO_ADDESTRATO }
@@ -122,4 +48,32 @@ interface PlayerProfile {
         return null
     }
 
+    fun cercaAzioneAddestramento(g: Giocatore): AzioneSecondaria.AddestraCane? {
+        for (riga in g.plancia.righe) {
+            for (carta in riga) {
+                val adultiPresenti = carta.cani.count {
+                    it.stato == StatoCane.ADULTO || it.stato == StatoCane.ADULTO_ADDESTRATO ||
+                            it.stato == StatoCane.IN_ACCOPPIAMENTO || it.stato == StatoCane.IN_ADDESTRAMENTO
+                }
+                val haSlot = g.plancia.haSlotAddestramentoDisponibilePerCarta(carta)
+                val caneLibero = carta.cani.firstOrNull { it.stato == StatoCane.ADULTO }
+                if (adultiPresenti >= 3 && haSlot && caneLibero != null) {
+                    return AzioneSecondaria.AddestraCane(carta, caneLibero)
+                }
+            }
+        }
+        return null
+    }
+
+    fun generaGiocatePossibili(g: Giocatore): List<AzioneGiocatore> {
+        val lista = mutableListOf<AzioneGiocatore>(AzioneGiocatore.Passa)
+        for (carta in g.mano) {
+            for (r in 0 until g.plancia.righe.size) {
+                if (g.plancia.puoOspitareTaglia(r, carta.taglia) && g.plancia.haSpazioInRiga(r)) {
+                    lista.add(AzioneGiocatore.GiocaCartaRazza(carta, r, g.plancia.righe[r].size))
+                }
+            }
+        }
+        return lista
+    }
 }
