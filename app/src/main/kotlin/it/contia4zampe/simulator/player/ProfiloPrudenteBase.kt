@@ -2,63 +2,55 @@ package it.contia4zampe.simulator.player
 
 import it.contia4zampe.simulator.engine.*
 import it.contia4zampe.simulator.model.*
-import it.contia4zampe.simulator.player.decision.ValutatoreAzioneEconomica
-import it.contia4zampe.simulator.player.decision.SelettoreMiniPlancia
-import it.contia4zampe.simulator.player.decision.ConfigSelettoreMiniPlancia
-import it.contia4zampe.simulator.player.decision.PolicyAccoppiamento
-import it.contia4zampe.simulator.player.decision.PolicyAccoppiamentoConfig
+import it.contia4zampe.simulator.player.decision.*
+import it.contia4zampe.simulator.rules.calcolaRenditaNetta
 import it.contia4zampe.simulator.rules.calcolaUpkeep
 
 class ProfiloPrudenteBase : PlayerProfile {
 
+    private fun sogliaScoreDinamica(numero: Int, max: Int): Double {
+        val progresso = numero.toDouble() / max
+        return if (progresso > 0.75) 0.0 else 2.0
+    }
+
     override fun decidiAzione(statoGiornata: StatoGiornata, statoGiocatore: StatoGiocatoreGiornata): AzioneGiocatore {
         val g = statoGiocatore.giocatore
-        val upkeep = calcolaUpkeep(g, statoGiornata.eventoAttivo).costoTotale
 
-        // 1. PRIORITÀ ASSOLUTA: Paga debiti subito
+        // 1. SOPRAVVIVENZA: Se sto per andare in debito stasera, vendi!
+        val emergenza = controllaUrgenzaVendita(statoGiocatore, statoGiornata)
+        if (emergenza != null) return emergenza
+
+        // 2. RIGORE: Paga debiti se ne hai
         if (g.debiti > 0 && g.doin >= 2) {
             return AzioneGiocatore.BloccoAzioniSecondarie(listOf(AzioneSecondaria.PagaDebito))
         }
 
-        val azioniPossibili = mutableListOf<AzioneGiocatore>(AzioneGiocatore.Passa)
-        for (carta in g.mano) {
-            for (r in 0 until g.plancia.righe.size) {
-                if (g.plancia.puoOspitareTaglia(r, carta.taglia) && g.plancia.haSpazioInRiga(r)) {
-                    azioniPossibili.add(AzioneGiocatore.GiocaCartaRazza(carta, r, g.plancia.righe[r].size))
-                }
-            }
-        }
+        // 3. AZIONE PRINCIPALE: Basata sul MARGINE
+        val rendita = calcolaRenditaNetta(g)
+        val upkeep = calcolaUpkeep(g, statoGiornata.eventoAttivo).costoTotale
+        val margine = rendita - upkeep
 
-        // Prudente: accetta solo giocate con score chiaramente positivo.
-        val sceltaPrincipale = ValutatoreAzioneEconomica.scegliMigliore(statoGiornata, statoGiocatore, azioniPossibili, sogliaScore = -2.0)
-        if (sceltaPrincipale !is AzioneGiocatore.Passa) {
-            return sceltaPrincipale
-        }
+        // Se il margine è buono (>2), il prudente abbassa la guardia sulla scorta di doin
+        val sicurezzaRichiesta = if (margine >= 2) 5 else 12
 
-        val acquistoMiniPlancia = SelettoreMiniPlancia.suggerisciAcquisto(
-            stato = statoGiornata,
-            sg = statoGiocatore,
-            marginePostAcquisto = upkeep + 3,
-            config = ConfigSelettoreMiniPlancia(carteMinimeCoperte = 2, adultiMinimiSullaCoppia = 4, scoreMinimoPosizione = 8)
+        val opzioni = generaGiocatePossibili(g)
+        val sogliaScore = sogliaScoreDinamica(statoGiornata.numero, statoGiornata.maxGiornateEvento + 1)
+        val scelta = ValutatoreAzioneEconomica.scegliMigliore(
+            statoGiornata, statoGiocatore, opzioni,
+            sogliaScore, sogliaSicurezza = sicurezzaRichiesta, pesoRiserva = 4.0
         )
+        if (scelta is AzioneGiocatore.GiocaCartaRazza) return scelta
 
-        return acquistoMiniPlancia?.let { AzioneGiocatore.BloccoAzioniSecondarie(listOf(it)) }
-            ?: AzioneGiocatore.Passa
+        // 4. AZIONI SECONDARIE
+        val blocco = mutableListOf<AzioneSecondaria>()
+        val addestramento = cercaAzioneAddestramento(g)
+        if (addestramento != null && g.doin > sicurezzaRichiesta) blocco.add(addestramento)
+
+        val acquisto = SelettoreMiniPlancia.suggerisciAcquisto(statoGiornata, statoGiocatore, 4)
+        if (acquisto != null && blocco.size < 2) blocco.add(acquisto)
+
+        if (blocco.isNotEmpty()) return AzioneGiocatore.BloccoAzioniSecondarie(blocco)
+
+        return AzioneGiocatore.Passa
     }
-
-    override fun vuoleDichiarareAccoppiamento(sg: StatoGiocatoreGiornata, carta: CartaRazza): Boolean {
-        return PolicyAccoppiamento.dovrebbeDichiarare(
-            statoGiocatore = sg,
-            carta = carta,
-            config = PolicyAccoppiamentoConfig(
-                sogliaDebitiMassima = 0,
-                margineDoinMinimoPostUpkeep = 5,
-                consentiPeggioramentoDebiti = false,
-                tolleranzaRiduzioneDoin = 2
-            )
-        )
-    }
-    
-
-    override fun scegliCartaDalMercato(giocatore: StatoGiocatoreGiornata, mercato: List<CartaRazza>) = mercato.minByOrNull { it.costo } ?: mercato.first()
 }

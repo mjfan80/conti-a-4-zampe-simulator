@@ -20,8 +20,11 @@ fun provaAvviareAddestramento(giocatore: Giocatore, carta: CartaRazza, cane: Can
     if (cane.stato != StatoCane.ADULTO) return false
     if (!giocatore.plancia.haSlotAddestramentoDisponibilePerCarta(carta)) return false
 
-    val adultiPresenti = carta.cani.count {
-        it.stato == StatoCane.ADULTO || it.stato == StatoCane.ADULTO_ADDESTRATO
+    val adultiPresenti = carta.cani.count { 
+        it.stato == StatoCane.ADULTO || 
+        it.stato == StatoCane.ADULTO_ADDESTRATO || 
+        it.stato == StatoCane.IN_ACCOPPIAMENTO || 
+        it.stato == StatoCane.IN_ADDESTRAMENTO 
     }
 
     if (adultiPresenti < 3) return false

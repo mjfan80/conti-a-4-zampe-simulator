@@ -2,86 +2,75 @@ package it.contia4zampe.simulator.player
 
 import it.contia4zampe.simulator.engine.*
 import it.contia4zampe.simulator.model.*
-import it.contia4zampe.simulator.player.decision.ValutatoreAzioneEconomica
-import it.contia4zampe.simulator.player.decision.SelettoreMiniPlancia
-import it.contia4zampe.simulator.player.decision.ConfigSelettoreMiniPlancia
-import it.contia4zampe.simulator.player.decision.PolicyAccoppiamento
-import it.contia4zampe.simulator.player.decision.PolicyAccoppiamentoConfig
-import it.contia4zampe.simulator.rules.calcolaUpkeep
+import it.contia4zampe.simulator.player.decision.*
 
 class ProfiloAvventato : PlayerProfile {
 
+    private fun sogliaScoreDinamica(numeroGiornata: Int, maxGiornate: Int): Double {
+        val progresso = numeroGiornata.toDouble() / maxGiornate
+        return when {
+            progresso < 0.4 -> -20.0      // Early: molto aggressivo
+            progresso < 0.75 -> -10.0     // Mid: ancora aggressivo ma meno
+            else -> 0.0                   // Late: niente mosse negative
+        }
+    }
+
     override fun decidiAzione(statoGiornata: StatoGiornata, statoGiocatore: StatoGiocatoreGiornata): AzioneGiocatore {
         val g = statoGiocatore.giocatore
-        val azioniPossibili = mutableListOf<AzioneGiocatore>(AzioneGiocatore.Passa)
-        for (carta in g.mano) {
-            for (r in 0 until g.plancia.righe.size) {
-                if (g.plancia.puoOspitareTaglia(r, carta.taglia) && g.plancia.haSpazioInRiga(r)) {
-                    azioniPossibili.add(AzioneGiocatore.GiocaCartaRazza(carta, r, g.plancia.righe[r].size))
-                }
-            }
-        }
 
-        val miglioreAzione = ValutatoreAzioneEconomica.scegliMigliore(statoGiornata, statoGiocatore, azioniPossibili, sogliaScore = -4.0)
-        if (miglioreAzione is AzioneGiocatore.GiocaCartaRazza) {
-            return miglioreAzione
-        }
-
-        // Vende solo se ha già dei debiti pesanti (3+)
-        if (g.debiti >= 3) {
-            val vendita = trovaCaneSacrificabile(g)
+        // 1. REAZIONE AL BLOCCO: Se ho debiti e sono povero, VENDI subito per sbloccare l'economia
+        if (g.debiti > 0 && g.doin < 2) {
+            val vendita = trovaCanePerEmergenza(g)
             if (vendita != null) return AzioneGiocatore.VendiCani(listOf(vendita))
         }
 
-        val upkeep = calcolaUpkeep(g, statoGiornata.eventoAttivo).costoTotale
-        val acquistoMiniPlancia = SelettoreMiniPlancia.suggerisciAcquisto(
-            stato = statoGiornata,
-            sg = statoGiocatore,
-            marginePostAcquisto = (upkeep - 1).coerceAtLeast(0),
-            config = ConfigSelettoreMiniPlancia(carteMinimeCoperte = 2, adultiMinimiSullaCoppia = 3, scoreMinimoPosizione = 7)
-        )
-        if (acquistoMiniPlancia != null) {
-            return AzioneGiocatore.BloccoAzioniSecondarie(listOf(acquistoMiniPlancia))
+        // 2. PAGAMENTO DEBITI: Più pragmatico, paga se ha almeno 5 doin
+        if (g.debiti > 0 && g.doin >= 5) {
+            return AzioneGiocatore.BloccoAzioniSecondarie(listOf(AzioneSecondaria.PagaDebito))
         }
 
+        // 3. AZIONE PRINCIPALE: Espansione quasi forzata
+        val opzioni = generaGiocatePossibili(g)
+        val soglia = sogliaScoreDinamica(statoGiornata.numero, statoGiornata.maxGiornateEvento + 1)
+        val migliore = ValutatoreAzioneEconomica.scegliMigliore(
+            statoGiornata, statoGiocatore, opzioni,
+            soglia, // alta tolleranza al rischio ma meno a partita avanzata
+            sogliaSicurezza = 2,    // Gli bastano 2 doin per "sentirsi a posto"
+            pesoRiserva = 0.5
+        )
+        if (migliore is AzioneGiocatore.GiocaCartaRazza) return migliore
+
+        // 4. AZIONI SECONDARIE
+        val blocco = mutableListOf<AzioneSecondaria>()
+
+        val addestramento = cercaAzioneAddestramento(g)
+        if (addestramento != null) blocco.add(addestramento)
+
+        val acquisto = SelettoreMiniPlancia.suggerisciAcquisto(statoGiornata, statoGiocatore, 0)
+        if (acquisto != null && blocco.size < 2) blocco.add(acquisto)
+
+        if (blocco.isNotEmpty()) return AzioneGiocatore.BloccoAzioniSecondarie(blocco)
         return AzioneGiocatore.Passa
     }
 
-    override fun vuoleDichiarareAccoppiamento(sg: StatoGiocatoreGiornata, carta: CartaRazza): Boolean {
-        return PolicyAccoppiamento.dovrebbeDichiarare(
-            statoGiocatore = sg,
-            carta = carta,
-            config = PolicyAccoppiamentoConfig(
-                sogliaDebitiMassima = 3,
-                margineDoinMinimoPostUpkeep = 0,
-                consentiPeggioramentoDebiti = true,
-                tolleranzaRiduzioneDoin = 12
-            )
-        )
-    }
-    
+    override fun vuoleDichiarareAccoppiamento(
+        sg: StatoGiocatoreGiornata,
+        carta: CartaRazza
+    ): Boolean {
 
-    private fun trovaCaneQualsiasi(g: Giocatore): DettaglioVendita? {
-        for (riga in g.plancia.righe) {
-            for (carta in riga) {
-                if (carta.cani.isNotEmpty()) {
-                    return DettaglioVendita(carta, carta.cani.first())
-                }
-            }
-        }
-        return null
-    }
-
-    override fun decidiGestioneCucciolo(sg: StatoGiocatoreGiornata, cucciolo: Cane): SceltaCucciolo {
         val g = sg.giocatore
         val upkeepAttuale = sg.calcolaUpkeepAttuale()
 
-        // Anche l'avventato, se corto di liquidità o in debito, monetizza subito il cucciolo.
-        if (g.debiti > 0 || g.doin <= upkeepAttuale) {
-            return SceltaCucciolo.VENDI
-        }
+        if (g.debiti >= 6 && g.doin < upkeepAttuale) return false
 
+        return true
+    }
+
+    override fun decidiGestioneCucciolo(sg: StatoGiocatoreGiornata, cucciolo: Cane): SceltaCucciolo {
+        // Se ha debiti pesanti vende, altrimenti tiene per fare PV
+        if (sg.giocatore.debiti > 5) return SceltaCucciolo.VENDI
         return SceltaCucciolo.TRASFORMA_IN_ADULTO
     }
+
     override fun scegliCartaDalMercato(giocatore: StatoGiocatoreGiornata, mercato: List<CartaRazza>) = mercato.maxByOrNull { it.rendita } ?: mercato.first()
 }

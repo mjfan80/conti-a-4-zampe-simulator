@@ -1,3 +1,5 @@
+/* FILE: src/main/kotlin/it/contia4zampe/simulator/report/CsvReportExporter.kt */
+
 package it.contia4zampe.simulator.report
 
 import it.contia4zampe.simulator.engine.PartitaResult
@@ -10,11 +12,13 @@ class CsvReportExporter {
         val gamesFile: File,
         val playersFile: File,
         val winnerCardsFile: File,
-        val profileDecisionsFile: File
+        val profileDecisionsFile: File,
+        val profileStatsFile: File // <--- NUOVO FILE
     )
 
     fun export(
         report: SimulationSummaryReport,
+        profileStats: List<ProfileStatRow>, // <--- NUOVO PARAMETRO
         games: List<PartitaResult>,
         outputDir: File,
         runId: String
@@ -28,6 +32,7 @@ class CsvReportExporter {
         val playersFile = File(outputDir, "players.csv")
         val winnerCardsFile = File(outputDir, "winner_cards.csv")
         val profileDecisionsFile = File(outputDir, "profile_decisions.csv")
+        val profileStatsFile = File(outputDir, "profile_stats.csv") // <--- NUOVO
 
         writeSummary(summaryFile, report, runId)
         writeGames(gamesFile, games, runId)
@@ -35,8 +40,44 @@ class CsvReportExporter {
         writeWinnerCards(winnerCardsFile, report, runId)
         writeProfileDecisions(profileDecisionsFile, report, runId)
 
-        return ExportedFiles(summaryFile, gamesFile, playersFile, winnerCardsFile, profileDecisionsFile)
+        // Scrittura del nuovo report statistico
+        writeProfileStats(profileStatsFile, profileStats, runId)
+
+        return ExportedFiles(
+            summaryFile,
+            gamesFile,
+            playersFile,
+            winnerCardsFile,
+            profileDecisionsFile,
+            profileStatsFile
+        )
     }
+
+    private fun writeProfileStats(file: File, stats: List<ProfileStatRow>, runId: String) {
+        file.writeText(
+            buildString {
+                appendLine("run_id,profile_name,games_played,wins,win_rate_percent,avg_points,avg_doin,avg_debts,avg_cards_board,bankruptcies_count")
+                stats.forEach { row ->
+                    appendLine(
+                        listOf(
+                            runId,
+                            quoted(row.profileName),
+                            row.gamesPlayed.toString(),
+                            row.wins.toString(),
+                            formatDecimal(row.winRate),
+                            formatDecimal(row.avgPoints),
+                            formatDecimal(row.avgDoin),
+                            formatDecimal(row.avgDebts),
+                            formatDecimal(row.avgCardsInBoard),
+                            row.bankruptcies.toString()
+                        ).joinToString(",")
+                    )
+                }
+            }
+        )
+    }
+
+    // --- LE ALTRE FUNZIONI RIMANGONO INVARIATE (le riporto per completezza del file se serve copia-incolla) ---
 
     private fun writeSummary(file: File, report: SimulationSummaryReport, runId: String) {
         file.writeText(
@@ -168,6 +209,5 @@ class CsvReportExporter {
     }
 
     private fun quoted(value: String): String = "\"${value.replace("\"", "\"\"")}\""
-
     private fun formatDecimal(value: Double): String = String.format(java.util.Locale.US, "%.2f", value)
 }
