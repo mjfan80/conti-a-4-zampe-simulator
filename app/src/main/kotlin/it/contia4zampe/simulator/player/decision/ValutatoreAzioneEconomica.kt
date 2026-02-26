@@ -6,7 +6,6 @@ import it.contia4zampe.simulator.model.*
 import it.contia4zampe.simulator.player.AzioneGiocatore
 import it.contia4zampe.simulator.rules.*
 
-// Struttura dati per i risultati
 data class EsitoValutazioneEconomica(
     val azione: AzioneGiocatore,
     val score: Double,
@@ -73,20 +72,19 @@ object ValutatoreAzioneEconomica {
         // Malus Sostenibilità: se l'upkeep è troppo alto rispetto alla rendita
         var malusSostenibilita = 0.0
         if (upkeepDomani > (renditaMattina + 2)) {
-            malusSostenibilita = (upkeepDomani - renditaMattina) * 5.0
+            malusSostenibilita = (upkeepDomani - renditaMattina) * 10.0
         }
 
-        // Malus Debito: diamo peso al debito che già esiste e a quello che faremmo
-        val malusDebitoEsistente = giocatore.debiti * 20.0
-        val fattorePauraDebitoFuturo = if (giocatore.doin > 25) 10.0 else 20.0
+        // Malus Debito: Pesante per tutti, drammatico per i poveri
+        val malusDebitoEsistente = giocatore.debiti * 30.0
+        val fattorePauraDebitoFuturo = if (giocatore.doin > 25) 15.0 else 30.0
 
-        // Bonus Espansione
         val bonusEspansione = (16 - copia.plancia.slotOccupatiTotali()) * 0.5
 
         // 5. Score Finale
         val score = (doinDopoAcquisto * 1.0) +
                 (pvCarta * 8.0) +
-                (renditaCarta * 10.0) +
+                (renditaCarta * 12.0) +
                 bonusEspansione -
                 (debitiTotaliSimulati * fattorePauraDebitoFuturo) -
                 malusDebitoEsistente -
@@ -107,30 +105,22 @@ object ValutatoreAzioneEconomica {
         sogliaSicurezza: Int,
         pesoRiserva: Double
     ): AzioneGiocatore {
-
         var miglioreAzione: AzioneGiocatore = AzioneGiocatore.Passa
         var punteggioMigliore = -20000.0
-
         for (azioneCorrente in azioni) {
-            // CORREZIONE: passiamo gli argomenti in ordine senza nomi per evitare errori di mixing
             val esito = valuta(statoGiornata, statoGiocatore, azioneCorrente, sogliaSicurezza, pesoRiserva)
-
             if (esito.score > punteggioMigliore) {
                 punteggioMigliore = esito.score
                 miglioreAzione = azioneCorrente
             }
         }
-
         return if (punteggioMigliore >= sogliaScore) miglioreAzione else AzioneGiocatore.Passa
     }
 
-    // --- FUNZIONI HELPER ---
-
     private fun costoCartaConEvento(carta: CartaRazza, evento: CartaEvento?): Int {
         var costo = carta.costo
-        if (evento?.tipo == TipoEffettoEvento.MODIFICA_COSTO_RAZZA_TUTTE) {
-            costo += evento.variazione
-        } else if (evento?.tipo == TipoEffettoEvento.MODIFICA_COSTO_RAZZA_TAGLIA) {
+        if (evento?.tipo == TipoEffettoEvento.MODIFICA_COSTO_RAZZA_TUTTE) costo += evento.variazione
+        else if (evento?.tipo == TipoEffettoEvento.MODIFICA_COSTO_RAZZA_TAGLIA) {
             if (carta.taglia == evento.tagliaTarget) costo += evento.variazione
             else if (carta.taglia == evento.tagliaTargetSecondaria) costo += evento.variazioneSecondaria
         }
