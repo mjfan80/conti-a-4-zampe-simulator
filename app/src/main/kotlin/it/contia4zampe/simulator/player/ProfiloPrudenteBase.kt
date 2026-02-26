@@ -8,6 +8,11 @@ import it.contia4zampe.simulator.rules.calcolaUpkeep
 
 class ProfiloPrudenteBase : PlayerProfile {
 
+    private fun sogliaScoreDinamica(numero: Int, max: Int): Double {
+        val progresso = numero.toDouble() / max
+        return if (progresso > 0.75) 0.0 else 2.0
+    }
+
     override fun decidiAzione(statoGiornata: StatoGiornata, statoGiocatore: StatoGiocatoreGiornata): AzioneGiocatore {
         val g = statoGiocatore.giocatore
 
@@ -29,9 +34,10 @@ class ProfiloPrudenteBase : PlayerProfile {
         val sicurezzaRichiesta = if (margine >= 2) 5 else 12
 
         val opzioni = generaGiocatePossibili(g)
+        val sogliaScore = sogliaScoreDinamica(statoGiornata.numero, statoGiornata.maxGiornateEvento + 1)
         val scelta = ValutatoreAzioneEconomica.scegliMigliore(
             statoGiornata, statoGiocatore, opzioni,
-            sogliaScore = 2.0, sogliaSicurezza = sicurezzaRichiesta, pesoRiserva = 4.0
+            sogliaScore, sogliaSicurezza = sicurezzaRichiesta, pesoRiserva = 4.0
         )
         if (scelta is AzioneGiocatore.GiocaCartaRazza) return scelta
 

@@ -6,27 +6,50 @@ import it.contia4zampe.simulator.player.decision.*
 
 class ProfiloAvventato : PlayerProfile {
 
+    private fun sogliaScoreDinamica(numeroGiornata: Int, maxGiornate: Int): Double {
+        val progresso = numeroGiornata.toDouble() / maxGiornate
+        return when {
+            progresso < 0.4 -> -20.0      // Early: molto aggressivo
+            progresso < 0.75 -> -10.0     // Mid: ancora aggressivo ma meno
+            else -> 0.0                   // Late: niente mosse negative
+        }
+    }
+
     override fun decidiAzione(statoGiornata: StatoGiornata, statoGiocatore: StatoGiocatoreGiornata): AzioneGiocatore {
         val g = statoGiocatore.giocatore
 
         // 1. REAZIONE AL BLOCCO: Se ho debiti e sono povero, VENDI subito per sbloccare l'economia
-        if (g.debiti > 0 && g.doin < 2) {
+
+
+        if (g.debiti > 6 && g.doin < 2) {
             val vendita = trovaCanePerEmergenza(g)
             if (vendita != null) return AzioneGiocatore.VendiCani(listOf(vendita))
         }
 
-        // 2. PAGAMENTO DEBITI: Più pragmatico, paga se ha almeno 5 doin
-        if (g.debiti > 0 && g.doin >= 5) {
-            return AzioneGiocatore.BloccoAzioniSecondarie(listOf(AzioneSecondaria.PagaDebito))
+        // 2. PAGAMENTO DEBITI:
+        val upkeepAttuale = statoGiocatore.calcolaUpkeepAttuale()
+
+        if (g.debiti >= 6) {
+            return AzioneGiocatore.BloccoAzioniSecondarie(
+                listOf(AzioneSecondaria.PagaDebito)
+            )
+        }
+
+// Se l'upkeep attuale è coperto con poco margine, non paga
+        if (g.debiti > 0 && g.doin - upkeepAttuale > 4) {
+            return AzioneGiocatore.BloccoAzioniSecondarie(
+                listOf(AzioneSecondaria.PagaDebito)
+            )
         }
 
         // 3. AZIONE PRINCIPALE: Espansione quasi forzata
         val opzioni = generaGiocatePossibili(g)
+        val soglia = sogliaScoreDinamica(statoGiornata.numero, statoGiornata.maxGiornateEvento + 1)
         val migliore = ValutatoreAzioneEconomica.scegliMigliore(
             statoGiornata, statoGiocatore, opzioni,
-            sogliaScore = -30.0, // Altissima tolleranza al rischio
+            soglia, // alta tolleranza al rischio ma meno a partita avanzata
             sogliaSicurezza = 2,    // Gli bastano 2 doin per "sentirsi a posto"
-            pesoRiserva = 0.5
+            pesoRiserva = 1.2
         )
         if (migliore is AzioneGiocatore.GiocaCartaRazza) return migliore
 
@@ -43,8 +66,16 @@ class ProfiloAvventato : PlayerProfile {
         return AzioneGiocatore.Passa
     }
 
-    override fun vuoleDichiarareAccoppiamento(sg: StatoGiocatoreGiornata, carta: CartaRazza): Boolean {
-        // L'avventato accoppia sempre, non guarda i debiti
+    override fun vuoleDichiarareAccoppiamento(
+        sg: StatoGiocatoreGiornata,
+        carta: CartaRazza
+    ): Boolean {
+
+        val g = sg.giocatore
+        val upkeepAttuale = sg.calcolaUpkeepAttuale()
+
+        if (g.debiti >= 6 && g.doin < upkeepAttuale) return false
+
         return true
     }
 
